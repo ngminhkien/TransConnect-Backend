@@ -1,0 +1,13 @@
+Xin chào {{FullName}},
+
+Cảm ơn bạn đã đăng ký tài khoản tại {{AppName}}.
+
+Mã xác thực email của bạn là: {{OtpCode}}
+
+Mã có hiệu lực trong {{ExpiresMinutes}} phút và chỉ dùng được một lần.
+
+Nếu bạn không đăng ký tài khoản tại {{AppName}}, hãy bỏ qua email này.
+
+--
+{{CompanyName}}
+Đây là email tự động, vui lòng không trả lời trực tiếp email này.

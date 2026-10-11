@@ -1,0 +1,15 @@
+Xin chào {{FullName}},
+
+Giao dịch {{TransactionType}} trên tài khoản {{AppName}} của bạn đã hoàn tất.
+
+Loại giao dịch    : {{TransactionType}}
+So tien           : {{Amount}}
+Thoi gian         : {{TransactionTime}}
+So du sau giao dich: {{BalanceAfter}}
+Ma giao dich      : {{TransactionId}}
+
+Nếu bạn KHÔNG thực hiện giao dịch này, hãy đổi mật khẩu ngay và liên hệ {{SupportEmail}}.
+
+--
+{{CompanyName}}
+Đây là email tự động, vui lòng không trả lời trực tiếp email này.

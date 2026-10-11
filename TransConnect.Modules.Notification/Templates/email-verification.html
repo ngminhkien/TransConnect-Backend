@@ -1,0 +1,26 @@
+<!--subject: Mã xác thực tài khoản {{AppName}}-->
+<!--preheader: Mã xác thực của bạn là {{OtpCode}}, hiệu lực trong {{ExpiresMinutes}} phút.-->
+
+<p style="margin:0 0 16px;">Xin chào <strong>{{FullName}}</strong>,</p>
+
+<p style="margin:0 0 16px;">
+  Cảm ơn bạn đã đăng ký tài khoản tại <strong>{{AppName}}</strong>. Nhập mã dưới đây để xác thực địa chỉ email của bạn:
+</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;">
+  <tr>
+    <td align="center" style="background-color:#f1f5f9; border:1px dashed #cbd5e1; border-radius:8px; padding:20px;">
+      <div style="font-family:'Courier New',Courier,monospace; font-size:32px; font-weight:bold; letter-spacing:8px; color:{{PrimaryColor}};">
+        {{OtpCode}}
+      </div>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0 0 16px;">
+  Mã có hiệu lực trong <strong>{{ExpiresMinutes}} phút</strong> và chỉ dùng được một lần.
+</p>
+
+<p style="margin:0; color:#6b7280; font-size:13px;">
+  Nếu bạn không đăng ký tài khoản tại {{AppName}}, hãy bỏ qua email này.
+</p>

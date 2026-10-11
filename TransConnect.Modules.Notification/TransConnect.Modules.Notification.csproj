@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TransConnect.Base\TransConnect.Base.csproj" />
+    <ProjectReference Include="..\TransConnect.Common\TransConnect.Common.csproj" />
+    <ProjectReference Include="..\TransConnect.Data\TransConnect.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.17.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Template đi kèm DLL để không phải copy thư mục khi deploy. Sửa template =
+         build lại, đổi lại được lợi là template luôn khớp với code và nằm trong git. -->
+    <EmbeddedResource Include="Templates\**\*.html" />
+    <EmbeddedResource Include="Templates\**\*.txt" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

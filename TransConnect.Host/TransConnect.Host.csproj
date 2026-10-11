@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>2d7cf3c7-36c2-4630-91d5-7caf41938d82</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TransConnect.Base\TransConnect.Base.csproj" />
+    <ProjectReference Include="..\TransConnect.Common\TransConnect.Common.csproj" />
+    <ProjectReference Include="..\TransConnect.Data\TransConnect.Data.csproj" />
+    <ProjectReference Include="..\TransConnect.Modules.Identity\TransConnect.Modules.Identity.csproj" />
+    <ProjectReference Include="..\TransConnect.Modules.Notification\TransConnect.Modules.Notification.csproj" />
+  </ItemGroup>
+
+</Project>
