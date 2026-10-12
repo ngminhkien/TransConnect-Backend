@@ -38,7 +38,7 @@ public class RoleService(IdentityDbContext dbContext) : IRoleService
 
         var role = new Role { Name = request.Name, Description = request.Description };
         dbContext.Roles.Add(role);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await SaveUniqueRoleAsync(role, cancellationToken);
 
         return ToResponse(role);
     }
@@ -56,7 +56,7 @@ public class RoleService(IdentityDbContext dbContext) : IRoleService
 
         role.Name = request.Name;
         role.Description = request.Description;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await SaveUniqueRoleAsync(role, cancellationToken);
 
         return ToResponse(role);
     }
@@ -152,6 +152,11 @@ public class RoleService(IdentityDbContext dbContext) : IRoleService
             throw new NotFoundException("Quyền", permissionId);
         }
     }
+
+    private Task SaveUniqueRoleAsync(Role role, CancellationToken cancellationToken) =>
+        IdentityUniqueWrite.SaveAsync(dbContext,
+            ct => dbContext.Roles.AnyAsync(r => r.Id != role.Id && r.Name == role.Name, ct),
+            $"Vai trò '{role.Name}' đã tồn tại.", cancellationToken);
 
     private static RoleResponse ToResponse(Role role) => new()
     {

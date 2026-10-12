@@ -7,7 +7,7 @@ kèm lý do đằng sau từng quyết định bảo mật, để người sửa
 
 - **Không dùng ASP.NET Core Identity.** RBAC (Role - Permission) tự xây trong module Identity.
 - Access token là **JWT** mang sẵn claim role + permission → không query DB mỗi request.
-- Refresh token lưu trong DB, có **xoay vòng và phát hiện tái sử dụng**.
+- Refresh token lưu **SHA-256** trong DB, có **xoay vòng và phát hiện tái sử dụng**. Client vẫn nhận token ngẫu nhiên 64 byte ở dạng Base64.
 
 ## Phân quyền
 
@@ -21,19 +21,43 @@ mỗi request phải tra cache/DB.
 
 ## Refresh token: xoay vòng + phát hiện tái sử dụng
 
-Mỗi lần refresh, token cũ bị đánh dấu `IsUsed` và một token mới được phát ra.
+Mỗi lần refresh, token cũ bị đánh dấu `IsUsed` bằng UPDATE có điều kiện `!IsUsed && !IsRevoked && ExpiresAt > now`; tạo token mới trong cùng transaction. Nếu tạo token mới thất bại, việc dùng token cũ cũng rollback. User không tồn tại, bị xóa mềm hoặc bị khóa trả 401.
 
 **Nếu một token đã `IsUsed` bị trình lên lần nữa** → coi như bị đánh cắp → **revoke toàn bộ
 refresh token còn hiệu lực của user đó** (`RevokeAllTokensAsync`), buộc đăng nhập lại trên mọi
 thiết bị.
 
-Lý do: token đã dùng chỉ có thể bị trình lại bởi bên thứ hai đang giữ bản sao. Chỉ từ chối
-riêng token đó là không đủ — kẻ tấn công vẫn giữ token mới nếu chính hắn là người refresh trước.
+Replay có thể do bị đánh cắp hoặc do client gửi refresh đồng thời/retry sau khi mất response. Chính sách hiện tại vẫn thu hồi toàn bộ refresh token của user; client phải gộp các yêu cầu refresh đồng thời vào một yêu cầu chung. Chỉ từ chối token cũ không vô hiệu được token mới đã cấp cho bên giữ bản sao.
 
 > Đừng "tối ưu" bước này thành chỉ từ chối token bị tái sử dụng. Đó là toàn bộ giá trị của cơ chế.
 
 **Giới hạn**: revoke refresh token **không** làm access token đã phát mất hiệu lực — kẻ tấn công
 vẫn dùng được tối đa hết thời hạn access token (mặc định 60 phút).
+
+## Migration hash refresh token (11/10/2026)
+
+Cột `identity.RefreshTokens.Token` giữ kiểu/index hiện có, nhưng lưu `sha256:` + 64 ký tự hex. SHA-256 phù hợp với token có 512 bit ngẫu nhiên; mật khẩu/OTP vẫn dùng BCrypt. Token hash lấy từ DB không thể dùng trực tiếp làm bearer token.
+
+Migration dữ liệu `20261011000000_HashRefreshTokens` dùng SQL Server `HASHBYTES('SHA2_256', CONVERT(varchar(500), Token))`. Token cũ là Base64 ASCII nên kết quả tương ứng UTF-8 phía .NET; không cần đổi token client đang giữ. Không có fallback đọc plaintext trong code mới.
+
+Trình tự triển khai:
+
+1. Dừng các instance code cũ, sao lưu database theo quy trình môi trường.
+2. Chạy `dotnet ef database update --project TransConnect.Modules.Identity --startup-project TransConnect.Host --context IdentityDbContext` bằng SDK/runtime .NET 10 và EF CLI tương ứng.
+3. Khởi động code mới, thử login/refresh/logout. Development tự migrate khi khởi động; Production cần bước migrate riêng.
+
+Không chạy lẫn code cũ/mới trên cùng database khi chuyển đổi. Migration không thể đảo hash về plaintext; `Down` chủ động từ chối. Nếu buộc quay lại code cũ, cần kế hoạch khôi phục DB hoặc thu hồi toàn bộ phiên và đăng nhập lại, không gọi downgrade migration một cách tự động.
+
+Trong phiên 11/10 đã kiểm tra sinh SQL bằng provider SQL Server và không lệch model/snapshot; chưa chạy migration trên DB thực tế. Test rotation/concurrency chạy bằng SQLite, không thay thế nghiệm thu SQL Server.
+
+## Cấu hình được kiểm tra khi khởi động
+
+- Jwt: key tối thiểu 32 byte UTF-8 cho HS256, issuer/audience không rỗng, thời hạn dương.
+- Verification: CodeLength 1–9 (giới hạn thuật toán Int32), thời hạn/số lần thử/số lần xin mã dương; mặc định vẫn 6 chữ số.
+- Email: chỉ File/Smtp; worker có giá trị dương, backoff tối đa không nhỏ hơn ban đầu. Smtp cần host, port 1–65535, user/password và địa chỉ người gửi hợp lệ. File không yêu cầu SMTP credential.
+- Google ClientId rỗng vẫn tắt chức năng Google; không cản startup.
+
+Validate chạy trước migration/seeding Development. Lỗi chỉ nêu tên cấu hình, không đưa secret vào thông báo.
 
 ## Mã OTP dùng chung
 
@@ -183,6 +207,8 @@ reset-password (email + code + mật khẩu mới)
 giữ nguyên phiên đăng nhập dù nạn nhân vừa đổi mật khẩu — reset mật khẩu mà không đá thiết bị lạ
 ra thì gần như vô nghĩa.
 
+Từ 12/10/2026, tiêu thụ OTP, đổi mật khẩu/xác thực email và thu hồi refresh token nằm trong cùng transaction Identity. Lỗi ở bước ghi dữ liệu rollback toàn bộ; mã nhập sai vẫn commit AttemptCount trước khi trả 401.
+
 Đặt lại mật khẩu thành công cũng **đánh dấu email đã xác thực**: nhập đúng mã gửi tới email
 nghĩa là đã chứng minh sở hữu email đó.
 
@@ -208,8 +234,21 @@ OTP đã chứng minh quyền sở hữu email nên việc này an toàn.
 
 - **Đăng nhập Google chưa cấu hình** — endpoint đang đóng an toàn nên không có rủi ro, nhưng
   chức năng chưa dùng được. Làm cùng lúc với frontend, xem mục riêng ở trên.
-- **Chưa validate cấu hình lúc khởi động**: `Jwt:Key` rỗng chỉ nổ ở request phát token đầu tiên,
-  không phải lúc start. Cân nhắc `AddOptions<JwtOptions>().Validate(...).ValidateOnStart()`.
-- **Chưa khoá tương tranh trên refresh token**: hai request refresh đồng thời cùng một token đều
-  đọc `IsUsed == false` rồi cùng đi tiếp. Hiếm nhưng có thật.
-- **Refresh token lưu plaintext** trong DB (khác với OTP đã hash).
+- Đăng ký/reset đã thống nhất tối thiểu 6, tối đa 100 ký tự qua `PasswordRules`, theo yêu cầu chủ dự án ngày 12/10; không thêm quy tắc độ phức tạp.
+- Chưa có thu hồi access token tức thì, khóa đăng nhập tự động hoặc tenant. Xem [hiện trạng Docs](../../TransConnect-Docs/00-project/backend-status.md).
+
+## Kiểm thử core
+
+`AuthLifecycleTests`, `RefreshConcurrencyTests`, `VerificationAndEmailTests`, `OptionsValidationTests`, `MigrationTests` bổ sung cho HTTP contract hiện có. Test email dừng tại lưu hàng đợi, không gửi SMTP và không chạy worker. Xem [ma trận truy vết](../../TransConnect-Docs/08-testing/traceability.md).
+
+`IdentityRegressionTests` kiểm tra OTP đồng thời, reset rollback, mật khẩu 6 ký tự, RBAC xóa/tạo lại, ghi trùng đồng thời và seeder. [Luồng test tổng thể](backend-test-flow.md) có request mẫu, thứ tự chạy và kỳ vọng.
+
+## Đồng thời OTP và migration RBAC — 12/10/2026
+
+- Issue/consume mở transaction rồi thực hiện no-op UPDATE User để lấy write lock tại DB trước khi đọc OTP. Cấp mã, kiểm tra hạn mức và vô hiệu mã cũ được tuần tự hóa theo user, kể cả nhiều backend instance. Consume đọc không tracking và claim bằng UPDATE có điều kiện; tăng số lần sai trực tiếp trong DB.
+- `ConsumeAndExecuteAsync` sở hữu transaction; callback chỉ ghi cùng IdentityDbContext, không mở transaction lồng nhau hoặc gọi email/network. Callback thành công mới commit mã; callback lỗi rollback. Caller phải bỏ scope DbContext sau lỗi hoặc reload entity trước khi tái sử dụng trạng thái đang tracking.
+- Refresh lấy khóa User trước token, cùng thứ tự với reset. SQLite test không thay thế kiểm chứng locking SQL Server.
+- Migration `20261012120436_ActiveRolePermissionUniqueIndexes` đổi `IX_Roles_Name` và `IX_Permissions_Code` sang unique có filter `[DeletedAt] IS NULL`. Cần áp dụng migration trước khi dùng khả năng tạo lại tên/code đã xóa. Không thay đổi uniqueness của email hoặc tên bảng.
+- Bản tạo lại có ID mới, không kế thừa UserRoles/RolePermissions cũ. Seeder nối tài khoản admin seed với role Admin khi role mặc định được tạo lại; không đặt lại mật khẩu và không phục hồi liên kết của user khác.
+- Tạo/đổi tên bị DbUpdateException chỉ chuyển thành 409 khi truy vấn xác nhận tên/code đang bị bản ghi hoạt động khác giữ; lỗi ghi không có xung đột vẫn đi theo lỗi hệ thống.
+- Downgrade về index không filter có thể thất bại nếu lịch sử và bản mới trùng tên/code. Phải giải quyết dữ liệu trùng trước khi downgrade, không tự xóa lịch sử trong migration.

@@ -11,7 +11,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
         builder.ToTable("Permissions");
 
         builder.Property(p => p.Code).IsRequired().HasMaxLength(150);
-        builder.HasIndex(p => p.Code).IsUnique();
+        builder.HasIndex(p => p.Code).IsUnique().HasFilter("[DeletedAt] IS NULL");
 
         builder.Property(p => p.Description).HasMaxLength(500);
     }

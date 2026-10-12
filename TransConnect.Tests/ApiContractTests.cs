@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -14,6 +15,7 @@ using TransConnect.Modules.Identity.Entities;
 using TransConnect.Modules.Identity.Persistence;
 using TransConnect.Modules.Identity.Services;
 using TransConnect.Modules.Notification.Workers;
+using TransConnect.Modules.Notification.Persistence;
 using Xunit;
 
 namespace TransConnect.Tests;
@@ -177,26 +179,37 @@ public class ApiContractTests
     }
 }
 
-internal sealed class ApiFactory : WebApplicationFactory<Program>
+internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null) : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
+    private readonly SqliteConnection _notificationConnection = new("Data Source=:memory:");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         _connection.Open();
+        _notificationConnection.Open();
         builder.UseEnvironment("Testing");
         builder.UseSetting("Jwt:Key", "test-only-key-0123456789-abcdefghijklmnopqrstuvwxyz");
         builder.UseSetting("Jwt:Issuer", "TransConnect.Tests");
         builder.UseSetting("Jwt:Audience", "TransConnect.Tests");
         builder.ConfigureServices(services =>
         {
+            services.AddDataProtection().UseEphemeralDataProtectionProvider();
             // Không migrate SQL Server, chạy SMTP hay worker trong kiểm thử API.
             foreach (var registration in services.Where(d =>
                          d.ImplementationType == typeof(EmailDispatchWorker)
                          || d.ServiceType == typeof(IdentityDbContext)
-                         || (d.ServiceType.IsGenericType && d.ServiceType.GenericTypeArguments.Contains(typeof(IdentityDbContext)))).ToArray())
+                         || d.ServiceType == typeof(NotificationDbContext)
+                         || (d.ServiceType.IsGenericType && (d.ServiceType.GenericTypeArguments.Contains(typeof(IdentityDbContext))
+                             || d.ServiceType.GenericTypeArguments.Contains(typeof(NotificationDbContext))))).ToArray())
                 services.Remove(registration);
-            services.AddDbContext<IdentityDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<IdentityDbContext>(options =>
+            {
+                if (databasePath is null) options.UseSqlite(_connection);
+                else options.UseSqlite($"Data Source={databasePath};Pooling=False");
+                if (interceptor is not null) options.AddInterceptors(interceptor);
+            });
+            services.AddDbContext<NotificationDbContext>(options => options.UseSqlite(_notificationConnection));
             services.AddControllers().AddApplicationPart(typeof(ContractErrorsController).Assembly);
         });
     }
@@ -209,7 +222,11 @@ internal sealed class ApiFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing) _connection.Dispose();
+        if (disposing)
+        {
+            _connection.Dispose();
+            _notificationConnection.Dispose();
+        }
     }
 }
 

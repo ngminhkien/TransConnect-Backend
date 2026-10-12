@@ -11,7 +11,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.ToTable("Roles");
 
         builder.Property(r => r.Name).IsRequired().HasMaxLength(100);
-        builder.HasIndex(r => r.Name).IsUnique();
+        builder.HasIndex(r => r.Name).IsUnique().HasFilter("[DeletedAt] IS NULL");
 
         builder.Property(r => r.Description).HasMaxLength(500);
     }

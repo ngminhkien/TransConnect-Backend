@@ -144,6 +144,9 @@ try
 
     var app = builder.Build();
 
+    // Fail before Development migrations/seeding, not at the first auth/email request.
+    app.Services.GetRequiredService<Microsoft.Extensions.Options.IStartupValidator>().Validate();
+
     // UseExceptionHandler phải đứng ĐẦU pipeline: middleware đăng ký trước nó (request
     // logging, https redirect...) mà ném exception thì sẽ không được handler bắt.
     app.UseExceptionHandler();

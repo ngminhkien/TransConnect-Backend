@@ -18,5 +18,14 @@ public interface IVerificationCodeService
         string code,
         CancellationToken cancellationToken = default);
 
+    // Callback chỉ ghi IdentityDbContext cùng scope, không mở transaction khác hoặc gửi email.
+    // Mã đúng và callback commit cùng nhau; mã sai vẫn commit bộ đếm trước khi ném lỗi.
+    Task ConsumeAndExecuteAsync(
+        Guid userId,
+        VerificationPurpose purpose,
+        string code,
+        Func<CancellationToken, Task> onVerified,
+        CancellationToken cancellationToken = default);
+
     int ExpiryMinutes { get; }
 }

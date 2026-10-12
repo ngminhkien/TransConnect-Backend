@@ -171,44 +171,56 @@ public class AuthService(
 
     public async Task<AuthResponse> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
     {
-        var storedToken = await dbContext.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken, cancellationToken);
+        var tokenHash = RefreshTokenHash.Compute(request.RefreshToken);
+        var storedToken = await dbContext.RefreshTokens.AsNoTracking()
+            .FirstOrDefaultAsync(rt => rt.Token == tokenHash, cancellationToken);
 
-        if (storedToken is null || storedToken.IsRevoked || storedToken.ExpiresAt < DateTime.UtcNow)
+        if (storedToken is null || storedToken.IsRevoked || storedToken.ExpiresAt <= DateTime.UtcNow)
         {
             throw new UnauthorizedAppException("Refresh token không hợp lệ hoặc đã hết hạn.");
         }
 
-        if (storedToken.IsUsed)
+        // Claim and successor insertion share one transaction. A conditional UPDATE makes
+        // concurrent requests serialize on the database row, including across app instances.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (await IdentityUserLock.AcquireAsync(dbContext, storedToken.UserId, cancellationToken) != 1)
+            throw new UnauthorizedAppException("Tài khoản không còn khả dụng. Vui lòng đăng nhập lại.");
+        var now = DateTime.UtcNow;
+        var claimed = await dbContext.RefreshTokens
+            .Where(rt => rt.Id == storedToken.Id && !rt.IsUsed && !rt.IsRevoked && rt.ExpiresAt > now)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(rt => rt.IsUsed, true)
+                .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
+
+        if (claimed == 0)
         {
-            // Token đã dùng rồi mà còn bị trình lên lần nữa — dấu hiệu bị đánh cắp.
-            // Revoke toàn bộ refresh token còn sống của user để chặn kẻ tấn công.
-            logger.LogWarning(
-                "Phát hiện refresh token bị dùng lại cho UserId {UserId} — revoke toàn bộ token còn hiệu lực.",
-                storedToken.UserId);
-            await RevokeAllTokensAsync(storedToken.UserId, cancellationToken);
+            var wasUsed = await dbContext.RefreshTokens.AnyAsync(
+                rt => rt.Id == storedToken.Id && rt.IsUsed, cancellationToken);
+            if (wasUsed)
+            {
+                logger.LogWarning("Phát hiện refresh token bị dùng lại cho UserId {UserId}.", storedToken.UserId);
+                await RevokeAllTokensAsync(storedToken.UserId, cancellationToken);
+            }
+            await transaction.CommitAsync(cancellationToken);
             throw new UnauthorizedAppException("Phát hiện refresh token bị dùng lại, vui lòng đăng nhập lại.");
         }
 
-        storedToken.IsUsed = true;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var user = await dbContext.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == storedToken.UserId && u.IsActive, cancellationToken)
+            ?? throw new UnauthorizedAppException("Tài khoản không còn khả dụng. Vui lòng đăng nhập lại.");
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == storedToken.UserId, cancellationToken)
-            ?? throw new NotFoundException("Người dùng", storedToken.UserId);
-
-        return await IssueTokensAsync(user, cancellationToken);
+        var response = await IssueTokensAsync(user, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return response;
     }
 
     public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
-        var storedToken = await dbContext.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == refreshToken, cancellationToken);
-
-        if (storedToken is not null)
-        {
-            storedToken.IsRevoked = true;
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
+        var tokenHash = RefreshTokenHash.Compute(refreshToken);
+        var now = DateTime.UtcNow;
+        await dbContext.RefreshTokens.Where(rt => rt.Token == tokenHash && !rt.IsRevoked)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(rt => rt.IsRevoked, true)
+                .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
     }
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
@@ -249,19 +261,14 @@ public class AuthService(
             throw new UnauthorizedAppException("Mã xác thực không đúng hoặc đã hết hạn.");
         }
 
-        await verificationCodeService.ConsumeAsync(
-            user.Id, VerificationPurpose.PasswordReset, request.Code, cancellationToken);
-
-        user.PasswordHash = passwordHasher.Hash(request.NewPassword);
-
-        // Nhập đúng mã gửi tới email nghĩa là đã chứng minh sở hữu email — coi như đã xác thực.
-        user.EmailVerifiedAt ??= DateTime.UtcNow;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        // Đổi mật khẩu mà không đá các phiên cũ ra thì gần như vô nghĩa: kẻ đã chiếm được
-        // tài khoản vẫn giữ nguyên refresh token và tiếp tục dùng được.
-        await RevokeAllTokensAsync(user.Id, cancellationToken);
+        await verificationCodeService.ConsumeAndExecuteAsync(
+            user.Id, VerificationPurpose.PasswordReset, request.Code, async ct =>
+            {
+                user.PasswordHash = passwordHasher.Hash(request.NewPassword);
+                user.EmailVerifiedAt ??= DateTime.UtcNow;
+                await dbContext.SaveChangesAsync(ct);
+                await RevokeAllTokensAsync(user.Id, ct);
+            }, cancellationToken);
 
         logger.LogInformation("UserId {UserId} đã đặt lại mật khẩu, toàn bộ phiên cũ bị thu hồi.", user.Id);
     }
@@ -280,11 +287,12 @@ public class AuthService(
             return;
         }
 
-        await verificationCodeService.ConsumeAsync(
-            user.Id, VerificationPurpose.EmailVerification, request.Code, cancellationToken);
-
-        user.EmailVerifiedAt = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await verificationCodeService.ConsumeAndExecuteAsync(
+            user.Id, VerificationPurpose.EmailVerification, request.Code, async ct =>
+            {
+                user.EmailVerifiedAt = DateTime.UtcNow;
+                await dbContext.SaveChangesAsync(ct);
+            }, cancellationToken);
 
         logger.LogInformation("UserId {UserId} đã xác thực email.", user.Id);
     }
@@ -360,16 +368,11 @@ public class AuthService(
 
     private async Task RevokeAllTokensAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var tokens = await dbContext.RefreshTokens
+        var now = DateTime.UtcNow;
+        await dbContext.RefreshTokens
             .Where(rt => rt.UserId == userId && !rt.IsRevoked)
-            .ToListAsync(cancellationToken);
-
-        foreach (var token in tokens)
-        {
-            token.IsRevoked = true;
-        }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
+            .ExecuteUpdateAsync(setters => setters.SetProperty(rt => rt.IsRevoked, true)
+                .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
     }
 
     private async Task<AuthResponse> IssueTokensAsync(User user, CancellationToken cancellationToken)
@@ -383,7 +386,7 @@ public class AuthService(
         dbContext.RefreshTokens.Add(new RefreshToken
         {
             UserId = user.Id,
-            Token = refreshToken,
+            Token = RefreshTokenHash.Compute(refreshToken),
             JwtId = accessToken.JwtId,
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDays)
         });

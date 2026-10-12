@@ -22,6 +22,8 @@ public class VerificationCodeService(
         VerificationPurpose purpose,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await LockUserAsync(userId, cancellationToken);
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
 
         var recentCount = await dbContext.VerificationCodes
@@ -58,59 +60,89 @@ public class VerificationCodeService(
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return code;
     }
 
-    public async Task ConsumeAsync(
+    public Task ConsumeAsync(
         Guid userId,
         VerificationPurpose purpose,
         string code,
+        CancellationToken cancellationToken = default) =>
+        ConsumeAndExecuteAsync(userId, purpose, code, _ => Task.CompletedTask, cancellationToken);
+
+    public async Task ConsumeAndExecuteAsync(
+        Guid userId,
+        VerificationPurpose purpose,
+        string code,
+        Func<CancellationToken, Task> onVerified,
         CancellationToken cancellationToken = default)
     {
-        var verificationCode = await dbContext.VerificationCodes
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await LockUserAsync(userId, cancellationToken);
+        var verificationCode = await dbContext.VerificationCodes.AsNoTracking()
             .Where(v => v.UserId == userId && v.Purpose == purpose && !v.IsUsed)
             .OrderByDescending(v => v.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
         // Dùng chung 1 thông báo cho mọi trường hợp hỏng (không có mã / sai / hết hạn):
         // nói rõ hơn chỉ giúp kẻ tấn công biết mình đang đi đúng hướng.
-        if (verificationCode is null || verificationCode.ExpiresAt < DateTime.UtcNow)
+        if (verificationCode is null || verificationCode.ExpiresAt <= DateTime.UtcNow)
         {
             throw new UnauthorizedAppException("Mã xác thực không đúng hoặc đã hết hạn.");
         }
 
         if (verificationCode.AttemptCount >= _options.MaxAttempts)
         {
-            await InvalidateAsync(verificationCode, cancellationToken);
+            await InvalidateAsync(verificationCode.Id, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             throw new UnauthorizedAppException("Mã xác thực không đúng hoặc đã hết hạn.");
         }
 
         if (!passwordHasher.Verify(code, verificationCode.CodeHash))
         {
-            verificationCode.AttemptCount++;
-
-            // Vừa chạm ngưỡng thì huỷ luôn, không để kẻ tấn công thử tiếp bằng mã này.
-            if (verificationCode.AttemptCount >= _options.MaxAttempts)
-            {
-                verificationCode.IsUsed = true;
-                verificationCode.UsedAt = DateTime.UtcNow;
-            }
-
-            await dbContext.SaveChangesAsync(cancellationToken);
+            var now = DateTime.UtcNow;
+            await dbContext.VerificationCodes.Where(v => v.Id == verificationCode.Id && !v.IsUsed)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(v => v.AttemptCount, v => v.AttemptCount + 1)
+                    .SetProperty(v => v.IsUsed, v => v.AttemptCount + 1 >= _options.MaxAttempts)
+                    .SetProperty(v => v.UsedAt, v => v.AttemptCount + 1 >= _options.MaxAttempts ? now : (DateTime?)null)
+                    .SetProperty(v => v.UpdatedAt, now), cancellationToken);
+            // Không rollback lượt nhập sai khi trả 401 cho reset/verify-email.
+            await transaction.CommitAsync(cancellationToken);
             throw new UnauthorizedAppException("Mã xác thực không đúng hoặc đã hết hạn.");
         }
 
-        verificationCode.IsUsed = true;
-        verificationCode.UsedAt = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var consumedAt = DateTime.UtcNow;
+        var claimed = await dbContext.VerificationCodes
+            .Where(v => v.Id == verificationCode.Id && !v.IsUsed
+                && v.ExpiresAt > consumedAt && v.AttemptCount < _options.MaxAttempts)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(v => v.IsUsed, true)
+                .SetProperty(v => v.UsedAt, consumedAt).SetProperty(v => v.UpdatedAt, consumedAt), cancellationToken);
+        if (claimed != 1)
+            throw new UnauthorizedAppException("Mã xác thực không đúng hoặc đã hết hạn.");
+
+        await onVerified(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
-    private async Task InvalidateAsync(VerificationCode code, CancellationToken cancellationToken)
+    private async Task InvalidateAsync(Guid codeId, CancellationToken cancellationToken)
     {
-        code.IsUsed = true;
-        code.UsedAt = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        await dbContext.VerificationCodes.Where(v => v.Id == codeId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(v => v.IsUsed, true)
+                .SetProperty(v => v.UsedAt, now).SetProperty(v => v.UpdatedAt, now), cancellationToken);
+    }
+
+    private async Task LockUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        // No-op UPDATE lấy write lock đến khi transaction kết thúc, trước mọi truy vấn OTP.
+        // Khóa trên User còn hoạt động tránh cả race cấp mã khi chưa có VerificationCode.
+        // SQL Server khóa tại DB (nhiều instance); SQLite dùng write transaction trong test.
+        var locked = await IdentityUserLock.AcquireAsync(dbContext, userId, cancellationToken);
+        if (locked != 1)
+            throw new UnauthorizedAppException("Mã xác thực không đúng hoặc đã hết hạn.");
     }
 
     // RandomNumberGenerator chứ không phải Random: Random đoán được nếu biết seed,

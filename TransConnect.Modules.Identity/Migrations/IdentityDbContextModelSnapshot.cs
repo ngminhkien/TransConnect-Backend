@@ -50,7 +50,8 @@ namespace TransConnect.Modules.Identity.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
 
                     b.ToTable("Permissions", "identity");
                 });
@@ -129,7 +130,8 @@ namespace TransConnect.Modules.Identity.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
 
                     b.ToTable("Roles", "identity");
                 });

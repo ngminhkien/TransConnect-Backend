@@ -11,8 +11,8 @@ public record RegisterRequest
     public string Email { get; init; } = string.Empty;
 
     [Required(ErrorMessage = "Vui lòng nhập {0}.")]
-    [MinLength(6, ErrorMessage = "{0} phải có ít nhất {1} ký tự.")]
-    [MaxLength(100, ErrorMessage = "{0} không được vượt quá {1} ký tự.")]
+    [MinLength(PasswordRules.MinimumLength, ErrorMessage = "{0} phải có ít nhất {1} ký tự.")]
+    [MaxLength(PasswordRules.MaximumLength, ErrorMessage = "{0} không được vượt quá {1} ký tự.")]
     [Display(Name = "Mật khẩu")]
     public string Password { get; init; } = string.Empty;
 

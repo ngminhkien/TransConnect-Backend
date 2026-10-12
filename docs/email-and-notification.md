@@ -181,6 +181,8 @@ Không cần đụng vào worker, provider hay `Program.cs`.
 
 ## Giới hạn đã biết
 
+Từ 11/10/2026: cấu hình Email được validate khi startup (provider File/Smtp, tham số worker dương, backoff hợp lệ; SMTP yêu cầu host/port/credential/địa chỉ người gửi). Test `TC_EMAIL_001` kiểm chứng register → render HTML an toàn → hàng đợi DB; không chạy gửi SMTP/worker. Các giới hạn bên dưới vẫn còn.
+
 **Enqueue không cùng transaction với nghiệp vụ.** Hàng đợi nằm ở `NotificationDbContext`, khác
 với DbContext của module gọi, nên hai bên không chung transaction.
 

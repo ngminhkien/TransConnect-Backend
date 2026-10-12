@@ -40,7 +40,9 @@ public class PermissionService(IdentityDbContext dbContext) : IPermissionService
 
         var permission = new Permission { Code = request.Code, Description = request.Description };
         dbContext.Permissions.Add(permission);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await IdentityUniqueWrite.SaveAsync(dbContext,
+            ct => dbContext.Permissions.AnyAsync(p => p.Id != permission.Id && p.Code == permission.Code, ct),
+            $"Quyền '{permission.Code}' đã tồn tại.", cancellationToken);
 
         return new PermissionResponse { Id = permission.Id, Code = permission.Code, Description = permission.Description };
     }

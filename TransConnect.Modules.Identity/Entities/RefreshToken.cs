@@ -9,6 +9,7 @@ public class RefreshToken : BaseEntity
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
 
+    // SHA-256 digest with sha256: prefix. Never persist the client bearer token.
     public string Token { get; set; } = string.Empty;
     public string JwtId { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }

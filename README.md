@@ -1,5 +1,7 @@
 # TransConnect Backend
 
+Luồng nghiệm thu backend hiện có: [hướng dẫn test tổng thể](docs/backend-test-flow.md) (API mẫu, OTP/phiên/RBAC, email và SQL Server).
+
 Backend đồ án tốt nghiệp — nền tảng kết nối vận tải (xe khách tuyến cố định + xe tải linh hoạt), xây theo kiến trúc **modular monolith**: nhiều module nghiệp vụ độc lập chạy chung 1 process, nhưng ranh giới rõ ràng để tách microservice sau này nếu cần.
 
 ## Công nghệ sử dụng
@@ -127,7 +129,18 @@ Endpoint dùng trực tiếp `/auth`, `/roles`, `/permissions`, không có tiề
 dotnet test TransConnect.Tests/TransConnect.Tests.csproj
 ```
 
-Test project dùng xUnit, HTTP test host và SQLite trong bộ nhớ, không cần SQL Server/SMTP. Cần SDK và runtime .NET 10; nếu máy có nhiều bản .NET, kiểm tra `dotnet --list-sdks` và dùng đúng executable/PATH .NET 10.
+Test project dùng xUnit, HTTP test host và SQLite (bộ nhớ; file tạm cho test đồng thời), không cần SQL Server/SMTP. Bao phủ API contract, auth/refresh/OTP, email queue, startup options và sinh SQL migration. `global.json` yêu cầu SDK 10, cho phép dùng feature band mới hơn trong .NET 10.
+
+Nếu có nhiều bản dotnet, dùng script để chọn đúng cả SDK và runtime của testhost:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Test-Core.ps1 -DotnetPath "$env:USERPROFILE/.dotnet/dotnet.exe"
+# Thêm -NoRestore nếu dependencies đã được restore trên máy.
+```
+
+Đường dẫn trên dành cho SDK cài trong user profile; thay bằng executable .NET 10 thực tế của máy. Script build toàn solution, chạy test và khôi phục DOTNET_ROOT sau khi hoàn tất. Ngày 11/10/2026 đã build/test bằng SDK 10.0.302; không chạy SQL Server hoặc SMTP thật.
+
+Refresh token hiện lưu hash và rotation có transaction. Trước khi chạy bản này trên database cũ, đọc [migration hash token](docs/auth-and-verification.md); migration dữ liệu không hỗ trợ đảo hash về plaintext. Cấu hình Jwt/Verification/Email được validate trước migrate/seed Development.
 
 ## Tài khoản Admin mặc định
 

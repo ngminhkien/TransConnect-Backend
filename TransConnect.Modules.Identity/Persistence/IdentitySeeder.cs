@@ -34,6 +34,7 @@ public static class IdentitySeeder
         await context.SaveChangesAsync(cancellationToken);
 
         var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin", cancellationToken);
+        var adminRoleCreated = adminRole is null;
         if (adminRole is null)
         {
             adminRole = new Role { Name = "Admin", Description = "Toàn quyền quản trị hệ thống" };
@@ -60,9 +61,11 @@ public static class IdentitySeeder
 
         await context.SaveChangesAsync(cancellationToken);
 
-        if (!await context.Users.AnyAsync(u => u.Email == AdminEmail, cancellationToken))
+        var admin = await context.Users.FirstOrDefaultAsync(u => u.Email == AdminEmail, cancellationToken);
+        var adminCreated = admin is null;
+        if (admin is null)
         {
-            var admin = new User
+            admin = new User
             {
                 Email = AdminEmail,
                 FullName = "System Admin",
@@ -73,7 +76,13 @@ public static class IdentitySeeder
             };
             context.Users.Add(admin);
             await context.SaveChangesAsync(cancellationToken);
+        }
 
+        // Role được tạo lại có ID mới; liên kết tới role đã xóa không cấp quyền nữa.
+        // Chỉ khôi phục tài khoản seed khi tạo user/role mặc định, không gán lại cho user khác.
+        if ((adminCreated || adminRoleCreated) && !await context.UserRoles.AnyAsync(
+                ur => ur.UserId == admin.Id && ur.RoleId == adminRole.Id, cancellationToken))
+        {
             context.UserRoles.Add(new UserRole { UserId = admin.Id, RoleId = adminRole.Id });
             await context.SaveChangesAsync(cancellationToken);
         }

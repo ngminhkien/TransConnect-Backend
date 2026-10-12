@@ -16,8 +16,8 @@ public record ResetPasswordRequest
     public string Code { get; init; } = string.Empty;
 
     [Required(ErrorMessage = "Vui lòng nhập {0}.")]
-    [MinLength(8, ErrorMessage = "{0} phải có ít nhất {1} ký tự.")]
-    [MaxLength(100, ErrorMessage = "{0} không được vượt quá {1} ký tự.")]
+    [MinLength(PasswordRules.MinimumLength, ErrorMessage = "{0} phải có ít nhất {1} ký tự.")]
+    [MaxLength(PasswordRules.MaximumLength, ErrorMessage = "{0} không được vượt quá {1} ký tự.")]
     [Display(Name = "Mật khẩu mới")]
     public string NewPassword { get; init; } = string.Empty;
 }

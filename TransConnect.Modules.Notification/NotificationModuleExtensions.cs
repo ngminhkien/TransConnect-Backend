@@ -22,7 +22,20 @@ public static class NotificationModuleExtensions
         services.AddDbContext<NotificationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("Default")));
 
-        services.Configure<EmailOptions>(section);
+        services.AddOptions<EmailOptions>().Bind(section)
+            .Validate(o => string.Equals(o.Provider, EmailProviderNames.File, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(o.Provider, EmailProviderNames.Smtp, StringComparison.OrdinalIgnoreCase),
+                "Email:Provider chỉ hỗ trợ File hoặc Smtp.")
+            .Validate(o => o.Worker.PollSeconds > 0 && o.Worker.BatchSize > 0 && o.Worker.MaxAttempts > 0
+                && o.Worker.StuckAfterMinutes > 0 && o.Worker.BackoffBaseSeconds > 0
+                && o.Worker.BackoffMaxSeconds >= o.Worker.BackoffBaseSeconds,
+                "Cấu hình Email:Worker không hợp lệ: các giá trị phải dương và backoff tối đa không nhỏ hơn backoff ban đầu.")
+            .Validate(o => !string.Equals(o.Provider, EmailProviderNames.Smtp, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrWhiteSpace(o.Smtp.Host) && o.Smtp.Port is >= 1 and <= 65535
+                    && !string.IsNullOrWhiteSpace(o.Smtp.User) && !string.IsNullOrWhiteSpace(o.Smtp.Password)
+                    && System.Net.Mail.MailAddress.TryCreate(o.From.Address, out _)),
+                "Provider Smtp cần Host, Port hợp lệ, User, Password và địa chỉ Email:From:Address hợp lệ.")
+            .ValidateOnStart();
 
         // Chọn đường gửi qua config thay vì #if DEBUG, để đổi được mà không phải build lại.
         var providerName = section[nameof(EmailOptions.Provider)] ?? EmailProviderNames.File;
