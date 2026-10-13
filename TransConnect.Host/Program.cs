@@ -16,6 +16,8 @@ using TransConnect.Modules.Identity;
 using TransConnect.Modules.Identity.Controllers;
 using TransConnect.Modules.Identity.Persistence;
 using TransConnect.Modules.Identity.Services;
+using TransConnect.Modules.Operator;
+using TransConnect.Modules.Operator.Persistence;
 using TransConnect.Modules.Notification;
 using TransConnect.Modules.Notification.Persistence;
 
@@ -41,6 +43,7 @@ try
     // Modules — mỗi module tự đăng ký DbContext/Services của mình qua 1 extension method.
     builder.Services.AddIdentityModule(builder.Configuration);
     builder.Services.AddNotificationModule(builder.Configuration);
+    builder.Services.AddOperatorModule(builder.Configuration);
 
     // Cross-cutting (TransConnect.Common)
     builder.Services.AddHttpContextAccessor();
@@ -75,7 +78,8 @@ try
     // Controllers nằm trong từng module assembly, Host chỉ discover qua AddApplicationPart.
     builder.Services.AddControllers()
         .AddVietnameseApiValidation()
-        .AddApplicationPart(typeof(AuthController).Assembly);
+        .AddApplicationPart(typeof(AuthController).Assembly)
+        .AddApplicationPart(typeof(TransConnect.Modules.Operator.Controllers.OrganizationsController).Assembly);
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -167,6 +171,7 @@ try
 
         var notificationDbContext = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
         await notificationDbContext.Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<OperatorDbContext>().Database.MigrateAsync();
 
         // Chỉ có ở Development: xếp hàng 1 email mẫu để kiểm tra template và cấu hình SMTP
         // mà không phải chạy qua luồng đăng ký. Hữu ích nhất khi vừa điền App Password mới.

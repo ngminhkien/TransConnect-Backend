@@ -1,5 +1,7 @@
 # Hệ thống gửi email (module Notification)
 
+Giai đoạn 1 thêm template organization-invitation (.html/.txt nhúng DLL) cho Owner/nhân viên/tài xế. Token ngẫu nhiên được gửi qua email, bảng lời mời chỉ lưu hash; API create trả id/expiresAt. HTML dùng cơ chế encode hiện có. Queue thuộc Notification còn invitation thuộc Operator: nếu enqueue xong nhưng transaction Operator rollback, email có thể tồn tại nhưng token không dùng được; gửi lại lời mời để phục hồi. Không đánh dấu email queued/sent là bằng chứng quan hệ thành viên/cộng tác đã được xác nhận.
+
 Tài liệu này mô tả cách email được gửi trong TransConnect: kiến trúc, lý do chọn thiết kế đó,
 cách thêm một loại email mới, và những giới hạn đã biết.
 

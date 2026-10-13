@@ -157,6 +157,11 @@ namespace TransConnect.Modules.Identity.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AccountGroup")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -199,10 +204,10 @@ namespace TransConnect.Modules.Identity.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("AccountGroup", "Email")
                         .IsUnique();
 
-                    b.HasIndex("GoogleId")
+                    b.HasIndex("AccountGroup", "GoogleId")
                         .IsUnique()
                         .HasFilter("[GoogleId] IS NOT NULL");
 

@@ -32,6 +32,7 @@ Mục tiêu: code sạch, thống nhất giữa các tầng, dễ mở rộng kh
   - `ValidationAppException` → 400
   - `ConflictException` → 409
   - `UnauthorizedAppException` → 401
+  - `ForbiddenAppException` → 403 (tài khoản đã xác thực nhưng thiếu quyền nghiệp vụ)
   - `TooManyRequestsException` → 429
   - Exception khác (không lường trước) → 500, log qua `ILogger`, **không** trả message chi tiết ra ngoài.
 - Khi thêm loại lỗi mới: thêm exception mới kế thừa `AppException` trong `Base`, thêm 1 case trong `AppExceptionHandler` — không tạo cơ chế xử lý lỗi song song ở nơi khác.

@@ -1,6 +1,20 @@
 # TransConnect-Backend — hướng dẫn agent
 
-Áp dụng cho toàn bộ repository Backend. Khảo sát core gần nhất: **2026-10-12**. Giữ file này ngắn gọn, dùng đường dẫn tương đối và cập nhật theo bằng chứng trong code/config.
+Áp dụng cho toàn bộ repository Backend. Khảo sát gần nhất: **2026-10-13**. Giữ file này ngắn gọn, dùng đường dẫn tương đối và cập nhật theo bằng chứng trong code/config.
+
+## Giai đoạn 1 ngày 13/10 — ưu tiên hơn bối cảnh lịch sử bên dưới
+
+- Bản mô tả entity/trường để chủ dự án duyệt: [DB-FOUNDATION-REVIEW-001](../TransConnect-Docs/04-database/phase-1-entities-and-relationships-review.md), DRAFT. Gồm 16 bảng, kiểu/nullable/index/FK và đề xuất R-01–18. Code hiện có không thay thế phê duyệt mô hình; lượt tạo tài liệu này không sửa entity hay apply migration.
+
+- Chủ dự án yêu cầu triển khai Q-01–05 từ Answer-DEC-PRODUCT-20261012 và xác nhận **hai nhóm Customer/Operator; Driver thuộc Operator; Admin nội bộ**. Xem [quyết định mới](../TransConnect-Docs/09-decisions/phase-1-foundation-2026-10-13.md). Không dùng cách chia bốn nhóm của bản 12/10.
+- Auth có AccountGroup, unique email/GoogleId theo nhóm; request thiếu group mặc định Customer. InternalAdmin không đăng ký công khai/Google. AccountId response là alias UserId; Driver không phải role mặc định. Logout chỉ thu hồi refresh thuộc current account.
+- Thêm module Operator/schema operator/OperatorDbContext: Organization, membership/invitation, Driver/engagement, Vehicle/OrganizationVehicle, audit; không reference module khác. Common có IAccountDirectory, AccountGroups và ITransportObligations; Base thêm ForbiddenAppException → 403.
+- Quyền Owner/Manager/Dispatcher được đọc từ membership DB trong từng tổ chức; không gán bằng RBAC toàn hệ thống. Account còn hoạt động được kiểm tra qua IAccountDirectory; mọi thao tác Operator yêu cầu đúng nhóm/xác thực theo service. Driver có thể cộng tác nhiều bên nhưng không tự có quyền nhân viên. Mời Driver bằng email có thể trước đăng ký; accept phải có hồ sơ đã duyệt.
+- Organization row lock trong transaction bảo vệ quota/accept/thay đổi quyền; token lời mời chỉ lưu hash; ghi audit cùng transaction. Email queue thuộc Notification nên có thể có email chứa mã không dùng được nếu transaction Operator rollback sau enqueue; có API gửi lại lời mời. Không dùng email gửi được để chứng minh accept đã commit.
+- EmployeeLimit mặc định 3, DriverLimit riêng mặc định null, InvitationHours 48 đều cấu hình; không phải chính sách giá. Owner nằm trong ActiveMembers. Manager quản lý xe/tài xế; chỉ Owner/Admin quản lý nhân viên.
+- Vehicle chỉ một liên kết chưa EndedAt, kể cả đang tạm ngừng; giữ lịch sử khi gỡ. Admin ghi căn cứ xác minh khi liên kết xe. **Thay FoundationTransportObligations trước khi bật Trip/Booking**: adapter giai đoạn 1 trả false vì chưa có dữ liệu vận tải. Test adapter có nghĩa vụ chỉ chứng minh guard hoạt động.
+- Development migrate cả Identity/Notification/Operator. Migration AccountGroups chuyển Admin role cũ sang InternalAdmin, còn lại Customer, chuẩn hóa email và revoke refresh; chưa apply DB thực tế. Hai migration Operator: InitOperatorFoundation, SeparateDriverQuota.
+- [Luồng nghiệm thu mới](docs/phase-1-foundation-test-flow.md); test FoundationTests và core. Kết quả mới nhất ở ma trận truy vết. Hồ sơ pháp lý/OCR/lưu file riêng/phát hiện nghi trùng tự động, UI, Trip/Booking chưa có; không ghi chúng thành hoàn thành.
 
 ## Nguồn cần đọc
 
@@ -22,6 +36,7 @@ Modular monolith C# / ASP.NET Core Web API, tất cả project target `net10.0`,
 | `TransConnect.Data/` | `AppDbContextBase`, generic repository, audit/soft-delete; reference Base |
 | `TransConnect.Modules.Identity/` | Controllers, DTO, services, entities, persistence/configurations, seeder, migrations; schema `identity` |
 | `TransConnect.Modules.Notification/` | Email queue, providers, worker, embedded templates, persistence, migrations; schema `notification` |
+| `TransConnect.Modules.Operator/` | Nền tảng tổ chức, thành viên, tài xế, xe, quota/audit; schema `operator` |
 | `TransConnect.Tests/` | xUnit + HTTP test host, SQLite bộ nhớ/file tạm: contract API, auth/refresh đồng thời, OTP/email queue, startup options; SQL migration script |
 | `docs/` | Sáu hướng dẫn kỹ thuật backend ở trên |
 
@@ -95,7 +110,7 @@ Với Notification, đổi project thành `TransConnect.Modules.Notification` v�
 - OTP issue/consume lấy write lock User trong transaction trước khi đọc. Consume claim có điều kiện, tăng AttemptCount trong DB. `ConsumeAndExecuteAsync` commit OTP cùng callback Identity (reset/verify-email); nhập sai commit bộ đếm trước 401. Không mở transaction lồng hoặc gọi email trong callback. Sau lỗi phải bỏ scope/reload entity tracking trước khi dùng lại.
 - Refresh cũng khóa User trước token để cùng thứ tự với reset. Quyền/access token vẫn theo chính sách cũ.
 - Migration `20261012120436_ActiveRolePermissionUniqueIndexes`: unique tên role/code permission chỉ trên DeletedAt NULL. Bản tạo lại có ID mới, không nhận quyền cũ. Seeder khôi phục liên kết admin seed nếu role Admin được tạo lại, giữ mật khẩu hiện có. Ghi xung đột được xác nhận trong DB trả 409.
-- Bổ sung `IdentityRegressionTests`, test SQL index/snapshot và [luồng test tổng thể](docs/backend-test-flow.md). Chưa apply migration vào DB phát triển; SQL Server locking/SMTP/Google thật cần nghiệm thu riêng. Kết quả chạy mới nhất xem `../TransConnect-Docs/08-testing/traceability.md`.
+- Bổ sung `IdentityRegressionTests`, test SQL index/snapshot và [luồng test tổng thể](docs/phase-1-foundation-test-flow.md). Chưa apply migration vào DB phát triển; SQL Server locking/SMTP/Google thật cần nghiệm thu riêng. Kết quả chạy mới nhất xem `../TransConnect-Docs/08-testing/traceability.md`.
 
 ### Bối cảnh lượt tài liệu trước đó
 

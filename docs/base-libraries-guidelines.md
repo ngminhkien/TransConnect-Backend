@@ -16,6 +16,8 @@ TransConnect.Host         -> Base, Common, Data, tất cả Modules.Xxx
 
 ## Cái gì thuộc về đâu
 
+Cập nhật giai đoạn 1: Base bổ sung ForbiddenAppException; Common map lỗi này sang 403 và chứa contract IAccountDirectory/AccountSummary/AccountGroups dùng giữa Identity–Operator. ITransportObligations là điểm nối cho kiểm tra nghĩa vụ xe/tài xế; adapter giai đoạn 1 nằm ở Operator và phải thay khi có Trip/Booking. Membership, quota, invitation, audit nghiệp vụ và chuẩn hóa biển số nằm trong Operator, không đưa vào Base. Data tiếp tục dùng AppDbContextBase/repository hiện có; không thêm UnitOfWork hoặc thư viện mới chỉ để phục vụ một module.
+
 **`TransConnect.Base`** — chỉ chứa những khái niệm domain thuần túy, không phụ thuộc framework nào ngoài BCL:
 - `BaseEntity`, `IAuditable`
 - Các exception dùng chung (`NotFoundException`, `ValidationAppException`, `ConflictException`, `UnauthorizedAppException`)

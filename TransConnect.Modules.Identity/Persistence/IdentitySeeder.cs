@@ -15,7 +15,8 @@ public static class IdentitySeeder
     [
         "roles.manage",
         "permissions.manage",
-        "users.manage"
+        "users.manage",
+        "organizations.manage"
     ];
 
     public static async Task SeedAsync(
@@ -61,13 +62,14 @@ public static class IdentitySeeder
 
         await context.SaveChangesAsync(cancellationToken);
 
-        var admin = await context.Users.FirstOrDefaultAsync(u => u.Email == AdminEmail, cancellationToken);
+        var admin = await context.Users.FirstOrDefaultAsync(u => u.Email == AdminEmail && u.AccountGroup == "InternalAdmin", cancellationToken);
         var adminCreated = admin is null;
         if (admin is null)
         {
             admin = new User
             {
                 Email = AdminEmail,
+                AccountGroup = "InternalAdmin",
                 FullName = "System Admin",
                 PasswordHash = passwordHasher.Hash(AdminDefaultPassword),
                 IsActive = true,

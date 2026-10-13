@@ -2,6 +2,8 @@ namespace TransConnect.Modules.Identity.Dto.Responses;
 
 public record CurrentUserResponse
 {
+    public string AccountGroup { get; init; } = string.Empty;
+    public Guid AccountId => UserId;
     public Guid UserId { get; init; }
     public string Email { get; init; } = string.Empty;
     public string FullName { get; init; } = string.Empty;

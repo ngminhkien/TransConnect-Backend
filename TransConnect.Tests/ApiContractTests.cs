@@ -16,6 +16,7 @@ using TransConnect.Modules.Identity.Persistence;
 using TransConnect.Modules.Identity.Services;
 using TransConnect.Modules.Notification.Workers;
 using TransConnect.Modules.Notification.Persistence;
+using TransConnect.Modules.Operator.Persistence;
 using Xunit;
 
 namespace TransConnect.Tests;
@@ -81,6 +82,7 @@ public class ApiContractTests
     [InlineData("conflict", 409, AppErrorCodes.Conflict)]
     [InlineData("missing", 404, AppErrorCodes.NotFound)]
     [InlineData("unauthorized", 401, AppErrorCodes.Unauthorized)]
+    [InlineData("forbidden", 403, AppErrorCodes.Forbidden)]
     [InlineData("limited", 429, AppErrorCodes.TooManyRequests)]
     [InlineData("unexpected", 500, AppErrorCodes.InternalError)]
     public async Task TC_API_005_Exception_handler_preserves_details_and_hides_internal_errors(string kind, int status, string code)
@@ -179,15 +181,18 @@ public class ApiContractTests
     }
 }
 
-internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null) : WebApplicationFactory<Program>
+internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null,
+    TransConnect.Common.Transport.ITransportObligations? obligations = null) : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly SqliteConnection _notificationConnection = new("Data Source=:memory:");
+    private readonly SqliteConnection _operatorConnection = new("Data Source=:memory:");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         _connection.Open();
         _notificationConnection.Open();
+        _operatorConnection.Open();
         builder.UseEnvironment("Testing");
         builder.UseSetting("Jwt:Key", "test-only-key-0123456789-abcdefghijklmnopqrstuvwxyz");
         builder.UseSetting("Jwt:Issuer", "TransConnect.Tests");
@@ -200,8 +205,10 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
                          d.ImplementationType == typeof(EmailDispatchWorker)
                          || d.ServiceType == typeof(IdentityDbContext)
                          || d.ServiceType == typeof(NotificationDbContext)
+                         || d.ServiceType == typeof(OperatorDbContext)
                          || (d.ServiceType.IsGenericType && (d.ServiceType.GenericTypeArguments.Contains(typeof(IdentityDbContext))
-                             || d.ServiceType.GenericTypeArguments.Contains(typeof(NotificationDbContext))))).ToArray())
+                             || d.ServiceType.GenericTypeArguments.Contains(typeof(NotificationDbContext))
+                             || d.ServiceType.GenericTypeArguments.Contains(typeof(OperatorDbContext))))).ToArray())
                 services.Remove(registration);
             services.AddDbContext<IdentityDbContext>(options =>
             {
@@ -210,6 +217,9 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
                 if (interceptor is not null) options.AddInterceptors(interceptor);
             });
             services.AddDbContext<NotificationDbContext>(options => options.UseSqlite(_notificationConnection));
+            services.AddDbContext<OperatorDbContext>(options => options.UseSqlite(_operatorConnection));
+            if (obligations is not null)
+                services.AddSingleton<TransConnect.Common.Transport.ITransportObligations>(obligations);
             services.AddControllers().AddApplicationPart(typeof(ContractErrorsController).Assembly);
         });
     }
@@ -226,6 +236,7 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
         {
             _connection.Dispose();
             _notificationConnection.Dispose();
+            _operatorConnection.Dispose();
         }
     }
 }
@@ -242,6 +253,7 @@ public class ContractErrorsController : ControllerBase
         "conflict" => new ConflictException("Dữ liệu đã tồn tại."),
         "missing" => new NotFoundException("Không tìm thấy dữ liệu."),
         "unauthorized" => new UnauthorizedAppException("Vui lòng đăng nhập lại."),
+        "forbidden" => new ForbiddenAppException(),
         "limited" => new TooManyRequestsException("Vui lòng thử lại sau."),
         _ => new Exception("sensitive-internal-detail")
     });

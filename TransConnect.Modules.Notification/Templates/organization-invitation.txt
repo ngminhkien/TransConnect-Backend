@@ -1,0 +1,5 @@
+Bạn được mời tham gia {{OrganizationName}} với vai trò {{Role}}.
+Đăng nhập hoặc đăng ký tài khoản Operator bằng email nhận thư, xác thực email rồi xác nhận lời mời.
+Mã xác nhận: {{InvitationToken}}
+Thời hạn (UTC): {{ExpiresAt}}. Mã chỉ dùng một lần.
+Nếu không muốn tham gia, bạn có thể bỏ qua thư này. Không chia sẻ mã.

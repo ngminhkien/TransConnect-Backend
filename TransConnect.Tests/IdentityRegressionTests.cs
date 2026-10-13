@@ -245,7 +245,8 @@ public class IdentityRegressionTests
         Assert.Contains("Admin", await permissions.GetRoleNamesAsync(admin.Id));
         Assert.Contains("roles.manage", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Equal(2, await db.Roles.CountAsync());
-        Assert.Equal(3, await db.Permissions.CountAsync());
+        Assert.Equal(4, await db.Permissions.CountAsync());
+        Assert.Contains("organizations.manage", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Equal(originalHash, (await db.Users.SingleAsync()).PasswordHash);
     }
 

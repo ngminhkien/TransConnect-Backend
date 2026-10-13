@@ -5,6 +5,8 @@ public record AuthResponse
     public string AccessToken { get; init; } = string.Empty;
     public DateTime AccessTokenExpiresAt { get; init; }
     public string RefreshToken { get; init; } = string.Empty;
+    public string AccountGroup { get; init; } = string.Empty;
+    public Guid AccountId => UserId;
     public Guid UserId { get; init; }
     public string Email { get; init; } = string.Empty;
     public string FullName { get; init; } = string.Empty;

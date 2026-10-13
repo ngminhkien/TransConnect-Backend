@@ -42,6 +42,7 @@ public static class IdentityModuleExtensions
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<TransConnect.Common.Auth.IAccountDirectory, AccountDirectory>();
 
         return services;
     }

@@ -1,5 +1,13 @@
 # Xác thực & phân quyền (module Identity)
 
+## Cập nhật giai đoạn 1 — 13/10/2026
+
+Register/login/google/forgot/reset/verify/resend có accountGroup (mặc định Customer). Hai nhóm công khai Customer/Operator có tài khoản độc lập, cho trùng email giữa nhóm; Driver dùng Operator. InternalAdmin chỉ được cấp nội bộ, không register/Google công khai. Email được trim/lowercase; unique (AccountGroup, Email), GoogleId cũng unique trong nhóm. Response có accountGroup và accountId (alias userId để giữ tương thích); JWT có account_group.
+
+Tất cả truy vấn email/Google/OTP đều theo nhóm; refresh theo AccountId của phiên, không chuyển nhóm. Logout chỉ thu hồi token của current account. Google yêu cầu email đã được Google xác minh và không ghi đè GoogleId khác đã liên kết.
+
+Phân quyền tổ chức nằm ở Operator, đọc account/membership còn hoạt động từ DB mỗi request; Owner/Manager/Dispatcher không phải role RBAC toàn hệ thống. Xem [luồng test giai đoạn 1](phase-1-foundation-test-flow.md). RBAC toàn hệ thống bên dưới vẫn dùng claim JWT; thay đổi claim chỉ có hiệu lực sau token mới.
+
 Tài liệu này mô tả các luồng đăng nhập, xoay vòng token, xác thực email và đặt lại mật khẩu —
 kèm lý do đằng sau từng quyết định bảo mật, để người sửa sau không vô tình gỡ mất chúng.
 
@@ -241,7 +249,7 @@ OTP đã chứng minh quyền sở hữu email nên việc này an toàn.
 
 `AuthLifecycleTests`, `RefreshConcurrencyTests`, `VerificationAndEmailTests`, `OptionsValidationTests`, `MigrationTests` bổ sung cho HTTP contract hiện có. Test email dừng tại lưu hàng đợi, không gửi SMTP và không chạy worker. Xem [ma trận truy vết](../../TransConnect-Docs/08-testing/traceability.md).
 
-`IdentityRegressionTests` kiểm tra OTP đồng thời, reset rollback, mật khẩu 6 ký tự, RBAC xóa/tạo lại, ghi trùng đồng thời và seeder. [Luồng test tổng thể](backend-test-flow.md) có request mẫu, thứ tự chạy và kỳ vọng.
+`IdentityRegressionTests` kiểm tra OTP đồng thời, reset rollback, mật khẩu 6 ký tự, RBAC xóa/tạo lại, ghi trùng đồng thời và seeder. [Luồng test tổng thể](phase-1-foundation-test-flow.md) có request mẫu, thứ tự chạy và kỳ vọng.
 
 ## Đồng thời OTP và migration RBAC — 12/10/2026
 

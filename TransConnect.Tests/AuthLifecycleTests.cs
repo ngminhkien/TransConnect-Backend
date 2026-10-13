@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using TransConnect.Base.Exceptions;
 using TransConnect.Modules.Identity.Dto.Requests;
@@ -64,8 +65,11 @@ public class AuthLifecycleTests
         var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.LoginAsync(new LoginRequest { Email = user.Email, Password = "wrong" }));
         var session = await auth.LoginAsync(new LoginRequest { Email = user.Email, Password = "password123" });
-        await auth.LogoutAsync(session.RefreshToken);
-        await auth.LogoutAsync(session.RefreshToken);
+        client.DefaultRequestHeaders.Authorization = new("Bearer", session.AccessToken);
+        using var logout = await client.PostAsJsonAsync("/auth/logout", new { refreshToken = session.RefreshToken });
+        using var repeated = await client.PostAsJsonAsync("/auth/logout", new { refreshToken = session.RefreshToken });
+        Assert.True(logout.IsSuccessStatusCode);
+        Assert.True(repeated.IsSuccessStatusCode);
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = session.RefreshToken }));
     }
 

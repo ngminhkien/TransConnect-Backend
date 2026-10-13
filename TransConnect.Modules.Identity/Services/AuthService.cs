@@ -44,6 +44,7 @@ public class AuthService(
         return new CurrentUserResponse
         {
             UserId = user.Id,
+            AccountGroup = user.AccountGroup,
             Email = user.Email,
             FullName = user.FullName,
             PhoneNumber = user.PhoneNumber,
@@ -56,7 +57,9 @@ public class AuthService(
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        var emailTaken = await dbContext.Users.AnyAsync(u => u.Email == request.Email, cancellationToken);
+        if (request.AccountGroup is not (AccountGroups.Customer or AccountGroups.Operator))
+            throw new ValidationAppException("Nhóm đăng ký không hợp lệ.");
+        var emailTaken = await dbContext.Users.AnyAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
         if (emailTaken)
         {
             throw new ConflictException($"Email '{request.Email}' đã được sử dụng.");
@@ -64,7 +67,8 @@ public class AuthService(
 
         var user = new User
         {
-            Email = request.Email,
+            Email = request.Email.Trim().ToLowerInvariant(),
+            AccountGroup = request.AccountGroup,
             PhoneNumber = request.PhoneNumber,
             FullName = request.FullName,
             PasswordHash = passwordHasher.Hash(request.Password),
@@ -72,7 +76,9 @@ public class AuthService(
         };
 
         dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await IdentityUniqueWrite.SaveAsync(dbContext,
+            ct => dbContext.Users.IgnoreQueryFilters().AnyAsync(u => u.AccountGroup == user.AccountGroup && u.Email == user.Email, ct),
+            "Email đã được sử dụng trong nhóm tài khoản này.", cancellationToken);
 
         await AssignDefaultRoleAsync(user, cancellationToken);
 
@@ -85,7 +91,7 @@ public class AuthService(
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
         if (user is null || !user.IsActive || user.PasswordHash is null
             || !passwordHasher.Verify(request.Password, user.PasswordHash))
@@ -109,6 +115,9 @@ public class AuthService(
             throw new UnauthorizedAppException("Đăng nhập Google chưa được cấu hình trên máy chủ.");
         }
 
+        if (request.AccountGroup == AccountGroups.InternalAdmin)
+            throw new UnauthorizedAppException("Tài khoản nội bộ không đăng nhập bằng Google.");
+
         GoogleJsonWebSignature.Payload payload;
         try
         {
@@ -124,17 +133,21 @@ public class AuthService(
             throw new UnauthorizedAppException("Mã đăng nhập Google không hợp lệ. Vui lòng đăng nhập lại.");
         }
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.GoogleId == payload.Subject, cancellationToken);
+        if (!payload.EmailVerified)
+            throw new UnauthorizedAppException("Email Google chưa được xác thực.");
+
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.GoogleId == payload.Subject && u.AccountGroup == request.AccountGroup, cancellationToken);
 
         if (user is null)
         {
-            user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == payload.Email, cancellationToken);
+            user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == payload.Email.ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
             if (user is null)
             {
                 user = new User
                 {
-                    Email = payload.Email,
+                    Email = payload.Email.Trim().ToLowerInvariant(),
+                    AccountGroup = request.AccountGroup,
                     FullName = payload.Name,
                     GoogleId = payload.Subject,
                     IsActive = true,
@@ -149,6 +162,8 @@ public class AuthService(
             }
             else
             {
+                if (!user.IsActive || (user.GoogleId is not null && user.GoogleId != payload.Subject))
+                    throw new UnauthorizedAppException("Không thể liên kết tài khoản Google này.");
                 // Tài khoản đã đăng ký bằng email/password, giờ liên kết thêm đăng nhập Google.
                 user.GoogleId = payload.Subject;
                 user.EmailVerifiedAt ??= DateTime.UtcNow;
@@ -216,16 +231,18 @@ public class AuthService(
 
     public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
+        if (!currentUser.IsAuthenticated || currentUser.UserId is not { } accountId)
+            throw new UnauthorizedAppException("Vui lòng đăng nhập.");
         var tokenHash = RefreshTokenHash.Compute(refreshToken);
         var now = DateTime.UtcNow;
-        await dbContext.RefreshTokens.Where(rt => rt.Token == tokenHash && !rt.IsRevoked)
+        await dbContext.RefreshTokens.Where(rt => rt.Token == tokenHash && rt.UserId == accountId && !rt.IsRevoked)
             .ExecuteUpdateAsync(setters => setters.SetProperty(rt => rt.IsRevoked, true)
                 .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
     }
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
         // KHÔNG báo lỗi khi email không tồn tại: nếu phản hồi khác nhau giữa "có" và "không có",
         // API này thành công cụ dò xem email nào đã đăng ký trong hệ thống.
@@ -253,7 +270,7 @@ public class AuthService(
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
         if (user is null || !user.IsActive)
         {
@@ -275,7 +292,7 @@ public class AuthService(
 
     public async Task VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
         if (user is null || !user.IsActive)
         {
@@ -299,7 +316,7 @@ public class AuthService(
 
     public async Task ResendVerificationAsync(ResendVerificationRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
         // Im lặng khi không tìm thấy hoặc đã xác thực rồi — cùng lý do chống dò tài khoản.
         if (user is null || !user.IsActive || user.EmailVerifiedAt is not null)
@@ -398,6 +415,7 @@ public class AuthService(
             AccessTokenExpiresAt = accessToken.ExpiresAt,
             RefreshToken = refreshToken,
             UserId = user.Id,
+            AccountGroup = user.AccountGroup,
             Email = user.Email,
             FullName = user.FullName,
             EmailVerified = user.EmailVerifiedAt is not null,

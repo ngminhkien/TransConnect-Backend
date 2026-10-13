@@ -11,7 +11,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
 
         builder.Property(u => u.Email).IsRequired().HasMaxLength(256);
-        builder.HasIndex(u => u.Email).IsUnique();
+        builder.Property(u => u.AccountGroup).IsRequired().HasMaxLength(20);
+        builder.HasIndex(u => new { u.AccountGroup, u.Email }).IsUnique();
 
         builder.Property(u => u.PhoneNumber).HasMaxLength(20);
         builder.Property(u => u.PasswordHash);
@@ -20,6 +21,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.GoogleId).HasMaxLength(255);
         // Filtered index: cho phép nhiều user có GoogleId = NULL (chưa liên kết Google).
-        builder.HasIndex(u => u.GoogleId).IsUnique().HasFilter("[GoogleId] IS NOT NULL");
+        builder.HasIndex(u => new { u.AccountGroup, u.GoogleId }).IsUnique().HasFilter("[GoogleId] IS NOT NULL");
     }
 }

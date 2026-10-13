@@ -24,6 +24,7 @@ public class TokenService(IOptions<JwtOptions> jwtOptions) : ITokenService
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, jwtId),
             new(ClaimTypes.Email, user.Email),
+            new("account_group", user.AccountGroup),
             new(ClaimTypes.Name, user.FullName)
         };
 

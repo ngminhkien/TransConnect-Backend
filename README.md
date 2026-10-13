@@ -1,6 +1,8 @@
 # TransConnect Backend
 
-Luồng nghiệm thu backend hiện có: [hướng dẫn test tổng thể](docs/backend-test-flow.md) (API mẫu, OTP/phiên/RBAC, email và SQL Server).
+Luồng nghiệm thu backend hiện có: [giai đoạn 1 — nền tảng](docs/phase-1-foundation-test-flow.md) (tài khoản theo nhóm, tổ chức/nhân viên/tài xế/xe, quota/audit, OTP/phiên/RBAC, email và SQL Server).
+
+Ngày 13/10 thêm module Operator với DbContext/schema/migrations riêng; Host Development migrate Identity, Notification và Operator. Customer/Operator là hai nhóm công khai; Driver dùng Operator; Admin login với accountGroup InternalAdmin. Xem [quyết định và giới hạn triển khai](../TransConnect-Docs/09-decisions/phase-1-foundation-2026-10-13.md). Migration mới chưa được apply vào DB phát triển.
 
 Backend đồ án tốt nghiệp — nền tảng kết nối vận tải (xe khách tuyến cố định + xe tải linh hoạt), xây theo kiến trúc **modular monolith**: nhiều module nghiệp vụ độc lập chạy chung 1 process, nhưng ranh giới rõ ràng để tách microservice sau này nếu cần.
 

@@ -4,6 +4,7 @@ namespace TransConnect.Modules.Identity.Entities;
 
 public class User : BaseEntity
 {
+    public string AccountGroup { get; set; } = "Customer";
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     // Null với tài khoản chỉ đăng nhập bằng Google (không có mật khẩu nội bộ).

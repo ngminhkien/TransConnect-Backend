@@ -37,6 +37,7 @@ public class AppExceptionHandler(ILogger<AppExceptionHandler> logger) : IExcepti
         ValidationAppException e => (StatusCodes.Status400BadRequest, e.ErrorCode, e.Message),
         ConflictException e => (StatusCodes.Status409Conflict, e.ErrorCode, e.Message),
         UnauthorizedAppException e => (StatusCodes.Status401Unauthorized, e.ErrorCode, e.Message),
+        ForbiddenAppException e => (StatusCodes.Status403Forbidden, e.ErrorCode, e.Message),
         TooManyRequestsException e => (StatusCodes.Status429TooManyRequests, e.ErrorCode, e.Message),
         _ => (StatusCodes.Status500InternalServerError, AppErrorCodes.InternalError, "Đã xảy ra lỗi hệ thống.")
     };
