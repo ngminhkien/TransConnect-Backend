@@ -65,7 +65,13 @@ PublishScripts/
 # nằm trong dotnet user-secrets (không track), KHÔNG commit appsettings.Development.json
 # nếu file đó chứa giá trị thật.
 appsettings.Development.json
+# Environment-specific configuration stays local; sanitized examples may be committed.
+appsettings.*.json
+!appsettings.*.example.json
 appsettings.*.local.json
+.env
+.env.*
+!.env.example
 secrets.json
 *.pfx
 *.p12

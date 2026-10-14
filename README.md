@@ -65,7 +65,7 @@ Copy từ file mẫu có sẵn trong repo rồi sửa cho máy bạn:
 cp TransConnect.Host/appsettings.Development.example.json TransConnect.Host/appsettings.Development.json
 ```
 
-Thường **chỉ cần sửa đúng một dòng** — connection string trỏ tới SQL Server trên máy bạn:
+Cấu hình connection string trỏ tới SQL Server trên máy bạn và một `Jwt:Key` riêng (ít nhất 32 ký tự). Không dùng lại khóa đã xuất hiện trong Git:
 
 ```json
 "ConnectionStrings": {
@@ -78,13 +78,16 @@ thiếu tiền tố này SQL Client hiểu nhầm thành hostname mạng và bá
 
 ### Cấu hình nằm ở đâu
 
-Repo này là **private**, nên cấu hình dùng chung được commit thẳng để cả nhóm chạy được ngay
-sau khi clone, không phải hỏi nhau từng giá trị.
+Chỉ cấu hình không chứa bí mật được commit. Quy tắc này áp dụng cả repo private.
 
 | File | Chứa gì | Commit? |
 |---|---|---|
-| `appsettings.json` | **Mọi cấu hình dùng chung**: `Jwt`, `Email` (kể cả SMTP), `Branding`, `Verification`, `Serilog` | ✅ |
-| `appsettings.Development.json` | **Chỉ thứ khác nhau giữa các máy**: connection string, và các override tuỳ chọn | ❌ (đã có trong `.gitignore`) |
+| `appsettings.json` | Cấu hình chung không chứa bí mật; khóa JWT, tài khoản/mật khẩu SMTP và connection string để trống | ✅ |
+| `appsettings.Development.json` | Connection string, khóa JWT riêng và cấu hình SMTP local | ❌ |
+| `appsettings.*.example.json` | Mẫu không chứa bí mật thật | ✅ |
+| `appsettings.<Environment>.json`, `.env*` | Cấu hình riêng môi trường (trừ file mẫu) | ❌ |
+
+Có thể dùng `dotnet user-secrets` trong Development hoặc biến môi trường khi triển khai. Không commit file bí mật để sửa lỗi thiếu cấu hình. `Jwt:Key` rỗng sẽ bị startup validation từ chối.
 
 ASP.NET Core nạp `appsettings.json` trước, rồi `appsettings.Development.json` **đè lên**. Nghĩa là:
 
@@ -109,8 +112,9 @@ Các khoá còn lại của `Email` (`Worker`, `Branding`, `Host`, `Port`...) v�
 
 > **Lưu ý khi thay đổi giá trị đã commit**: git giữ lại toàn bộ lịch sử. Đổi `Jwt:Key` hay App
 > Password ở commit sau **không xoá được giá trị cũ khỏi history** — ai clone repo vẫn đọc được.
-> Nếu về sau repo chuyển sang public, hoặc một thành viên rời nhóm, phải **tạo giá trị mới**
-> (đổi App Password trong Google Account, sinh lại `Jwt:Key`) chứ không chỉ sửa file.
+> Khóa JWT và App Password đã commit phải được thay/thu hồi ở môi trường sử dụng,
+> không đợi repo public. Xóa ở bản hiện tại không xóa commit cũ; làm sạch lịch sử cần
+> phối hợp các clone/nhánh và cập nhật remote. Không gửi bí mật qua chat hoặc PR.
 
 **2. Build & chạy:**
 

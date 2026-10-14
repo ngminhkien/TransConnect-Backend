@@ -4,6 +4,8 @@
 
 ## Giai đoạn 1 ngày 13/10 — ưu tiên hơn bối cảnh lịch sử bên dưới
 
+- Ngày 14/10: appsettings.json chỉ giữ cấu hình không chứa bí mật; Jwt:Key/SMTP credentials để trống, địa chỉ cá nhân được bỏ. Cấu hình local đã chuyển vào appsettings.Development.json bị ignore; mẫu có Jwt:Key rỗng cần tự cấu hình. Ignore mọi appsettings theo môi trường và .env, chỉ cho phép mẫu an toàn. Không in secret hoặc diff cũ chứa secret ra log. Lượt này chưa xóa lịch sử Git/remote; credential từng commit cần thu hồi/đổi bên nhà cung cấp.
+
 - Bản mô tả entity/trường để chủ dự án duyệt: [DB-FOUNDATION-REVIEW-001](../TransConnect-Docs/04-database/phase-1-entities-and-relationships-review.md), DRAFT. Gồm 16 bảng, kiểu/nullable/index/FK và đề xuất R-01–18. Code hiện có không thay thế phê duyệt mô hình; lượt tạo tài liệu này không sửa entity hay apply migration.
 
 - Chủ dự án yêu cầu triển khai Q-01–05 từ Answer-DEC-PRODUCT-20261012 và xác nhận **hai nhóm Customer/Operator; Driver thuộc Operator; Admin nội bộ**. Xem [quyết định mới](../TransConnect-Docs/09-decisions/phase-1-foundation-2026-10-13.md). Không dùng cách chia bốn nhóm của bản 12/10.

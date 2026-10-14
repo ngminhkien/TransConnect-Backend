@@ -1,5 +1,21 @@
 # Luồng kiểm thử giai đoạn 1 — Nền tảng VieGo
 
+## Trạng thái lượt xử lý entity ngày 14/10/2026
+
+Chủ dự án đã đồng ý cách xử lý R-08/09 (làm nền tảng giấy tờ và dữ liệu tối thiểu, hoãn mở rộng nâng cao/OCR) và R-10 (thêm EndReason/EndedBy, hoãn loại hợp đồng/ủy quyền), đồng thời yêu cầu dừng báo cáo khi gặp vấn đề.
+
+**Lượt triển khai đang dừng ở kiểm tra môi trường, chưa sửa code/migration và chưa chạy bộ test mới.** `docker info --format '{{.ServerVersion}}'` không kết nối được Docker Engine: named pipe `docker_engine` không tồn tại; CLI còn báo không đọc được `C:\Users\PC\.docker\config.json` trong phiên agent. Chưa thể chạy kiểm thử tích hợp kho giấy tờ local theo kế hoạch. Đây không phải kết quả kiểm thử tính năng thất bại và không chứng minh máy chưa cài Docker.
+
+Điều kiện tiếp tục kiểm thử môi trường:
+
+1. Khởi động Docker Desktop/Engine rồi kiểm tra `docker info --format '{{.ServerVersion}}'` trả phiên bản server; nếu terminal người dùng chạy được nhưng agent không chạy được, cần xử lý quyền truy cập môi trường agent.
+2. Dùng SDK đã xác minh: `C:/Users/PC/.dotnet/dotnet.exe --version` trả `10.0.302`. `dotnet` mặc định trên PATH hiện là SDK 9, không dùng cho solution này.
+3. Sau khi môi trường sẵn sàng, triển khai kho private/dịch vụ kiểm tra file và bổ sung hướng dẫn chạy thực tế; hiện chưa có Compose hoặc endpoint Compliance để nghiệm thu.
+
+Các luồng bên dưới vẫn mô tả code giai đoạn 1 đã có. Bộ nghiệm thu mới phải được bổ sung sau triển khai: Owner kiêm Driver; unique Owner/CHECK; InvitationId; EndReason/EndedBy; hồ sơ tổ chức; audit và dọn email; upload–kiểm tra–duyệt–xem giấy tờ; chống đọc chéo tổ chức, ghi đè bản đã duyệt và truy cập sau thu hồi quyền. Không đánh dấu các mục này đã pass.
+
+Kế hoạch và backlog: [PLAN-PHASE1-REVIEW-001](../../TransConnect-Docs/09-decisions/phase-1-review-implementation-plan.md).
+
 Phạm vi ngày 13/10/2026: Identity theo nhóm Customer/Operator, Admin nội bộ, tổ chức và xét duyệt thủ công, Owner/nhân viên/lời mời/quota/audit, hồ sơ tài xế và sự đồng ý cộng tác, phương tiện và lịch sử khai thác; giữ các luồng core API/OTP/phiên/RBAC/email bên dưới. OCR, kho hồ sơ riêng, chuyến/đơn hàng và thanh toán chưa triển khai.
 
 Nguồn: [câu trả lời Q-01–09](../../TransConnect-Docs/09-decisions/Answer-DEC-PRODUCT-20261012.txt) và [quyết định giai đoạn 1](../../TransConnect-Docs/09-decisions/phase-1-foundation-2026-10-13.md). Giai đoạn 1 ở đây là thứ tự mới trong file trả lời, không phải tên Phase 1/Phase 2 của roadmap cũ.
@@ -7,6 +23,8 @@ Nguồn: [câu trả lời Q-01–09](../../TransConnect-Docs/09-decisions/Answe
 **Thay đổi khi dùng các request core bên dưới:** thêm `accountGroup: "Customer"` hoặc `"Operator"` vào register/login/google/forgot/reset/verify/resend. Nếu bỏ trống, mặc định Customer để giữ client cũ; không tự dò nhóm từ email. Admin login/OTP dùng `"InternalAdmin"`; đăng ký công khai nhóm này trả 400. Driver dùng Operator. SĐT hiện là thông tin liên hệ, chưa phải định danh đăng nhập. Response có `accountId` (cùng giá trị `userId` được giữ để tương thích) và `accountGroup`.
 
 ## 1. Chạy bộ kiểm thử tự động trước
+
+**Cấu hình bí mật sau ngày 14/10:** appsettings.json không còn khóa JWT hoặc credentials SMTP. Máy đang làm việc giữ override trong appsettings.Development.json bị Git ignore; máy clone mới cần connection string và Jwt:Key riêng (ít nhất 32 ký tự) trong cấu hình local/user-secrets. Không cấu hình khóa thì startup phải từ chối. Nếu khóa local trước đây dùng khóa chung trong Git, lượt làm sạch đã tạo khóa mới; đăng nhập lại vì access token ký bằng khóa cũ không còn hợp lệ. Provider File không cần SMTP thật. Không copy secret vào file mẫu để chạy test.
 
 Các test mới nằm trong `FoundationTests`: phân nhóm tài khoản/OTP/reset, Owner/nhân viên/quota/audit, tenant, lời mời hết hạn/dùng lại/thay thế, tài xế nhiều tổ chức, mời trước đăng ký, lịch sử xe, logout chéo tài khoản và adapter chặn gỡ liên kết khi còn nghĩa vụ. Kết quả cuối cùng ghi tại ma trận truy vết.
 
