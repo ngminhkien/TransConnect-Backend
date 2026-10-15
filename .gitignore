@@ -73,6 +73,8 @@ appsettings.*.local.json
 .env.*
 !.env.example
 secrets.json
+*.license
+.nuget-feed/
 *.pfx
 *.p12
 *.snk

@@ -20,6 +20,8 @@ using TransConnect.Modules.Operator;
 using TransConnect.Modules.Operator.Persistence;
 using TransConnect.Modules.Notification;
 using TransConnect.Modules.Notification.Persistence;
+using TransConnect.Modules.Compliance;
+using TransConnect.Modules.Compliance.Persistence;
 
 const string CorsPolicyName = "TransConnectClients";
 
@@ -44,6 +46,7 @@ try
     builder.Services.AddIdentityModule(builder.Configuration);
     builder.Services.AddNotificationModule(builder.Configuration);
     builder.Services.AddOperatorModule(builder.Configuration);
+    builder.Services.AddComplianceModule(builder.Configuration, builder.Environment);
 
     // Cross-cutting (TransConnect.Common)
     builder.Services.AddHttpContextAccessor();
@@ -76,10 +79,21 @@ try
     }));
 
     // Controllers nằm trong từng module assembly, Host chỉ discover qua AddApplicationPart.
-    builder.Services.AddControllers()
+    var mvc = builder.Services.AddControllers()
         .AddVietnameseApiValidation()
         .AddApplicationPart(typeof(AuthController).Assembly)
         .AddApplicationPart(typeof(TransConnect.Modules.Operator.Controllers.OrganizationsController).Assembly);
+
+    // Remove automatic discovery too: demo routes must not exist when disabled.
+    var complianceAssembly = typeof(TransConnect.Modules.Compliance.Controllers.DemoDocumentsController).Assembly;
+    var complianceDemoEnabled = builder.Configuration.GetValue<bool>("ComplianceDemo:Enabled");
+    mvc.ConfigureApplicationPartManager(manager =>
+    {
+        foreach (var part in manager.ApplicationParts.Where(p => p.Name == complianceAssembly.GetName().Name).ToArray())
+            manager.ApplicationParts.Remove(part);
+        if (complianceDemoEnabled && builder.Environment.IsDevelopment())
+            manager.ApplicationParts.Add(new Microsoft.AspNetCore.Mvc.ApplicationParts.AssemblyPart(complianceAssembly));
+    });
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -172,6 +186,8 @@ try
         var notificationDbContext = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
         await notificationDbContext.Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<OperatorDbContext>().Database.MigrateAsync();
+        if (complianceDemoEnabled)
+            await scope.ServiceProvider.GetRequiredService<ComplianceDbContext>().Database.MigrateAsync();
 
         // Chỉ có ở Development: xếp hàng 1 email mẫu để kiểm tra template và cấu hình SMTP
         // mà không phải chạy qua luồng đăng ký. Hữu ích nhất khi vừa điền App Password mới.

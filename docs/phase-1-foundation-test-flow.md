@@ -1,6 +1,14 @@
 # Luồng kiểm thử giai đoạn 1 — Nền tảng VieGo
 
+**Bản chạy test từ đầu với đầy đủ DTO hiện tại:** [full-manual-test-flow](full-manual-test-flow.md), kèm [125 request Postman](http/TransConnect-full-flow.postman_collection.json), [REST Client](http/full-flow.http) và [response DTO mẫu](http/response-examples.json). Ưu tiên bản này khi copy request: nó khai rõ accountGroup từng bước, actor và token cần thay, đồng thời bao gồm Compliance demo. Các mục bên dưới giữ kịch bản nghiệm thu core/đồng thời chi tiết.
+
+## Cập nhật ưu tiên 15/10 — tiếp tục bằng demo nhẹ RAM
+
+Chủ dự án xác nhận scanner đang chạy (~952.6 MiB) nhưng chọn tạm không chạy scan/OCR thật, yêu cầu tích hợp demo .NET. Đã thêm Compliance với storage S3 thật và fixture mô phỏng, không cần scanner để phát triển/kiểm thử phần demo. Xem [setup và luồng nghiệm thu riêng](compliance-demo-setup.md). Điểm dừng môi trường bên dưới là lịch sử trước quyết định này; không còn là điều kiện chặn nhánh demo. Chưa apply migration/test AIStor hoặc SQL Server live; không đánh dấu scan/OCR thật đã pass.
+
 ## Trạng thái lượt xử lý entity ngày 14/10/2026
+
+**Kiểm tra lại 15/10/2026:** Sau yêu cầu tiếp tục backend và tài liệu, chạy lại `docker info --format '{{.ServerVersion}}'` vẫn trả exit code 1: named pipe `docker_engine` không tồn tại và không đọc được Docker config trong phiên agent. Giữ điểm dừng theo yêu cầu báo cáo khi gặp vấn đề; chưa sửa backend/migration, chưa chạy build/test trong lượt này. Cần Docker Engine truy cập được từ phiên agent trước khi tiếp tục theo luồng triển khai đã ghi nhận.
 
 Chủ dự án đã đồng ý cách xử lý R-08/09 (làm nền tảng giấy tờ và dữ liệu tối thiểu, hoãn mở rộng nâng cao/OCR) và R-10 (thêm EndReason/EndedBy, hoãn loại hợp đồng/ủy quyền), đồng thời yêu cầu dừng báo cáo khi gặp vấn đề.
 

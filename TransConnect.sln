@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransConnect.Tests", "Trans
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransConnect.Modules.Operator", "TransConnect.Modules.Operator\TransConnect.Modules.Operator.csproj", "{B73954A2-AAB4-4AE7-8C59-E77B36F905C3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransConnect.Modules.Compliance", "TransConnect.Modules.Compliance\TransConnect.Modules.Compliance.csproj", "{D04A4766-A6ED-4A6A-B061-A3306AC7661A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +127,18 @@ Global
 		{B73954A2-AAB4-4AE7-8C59-E77B36F905C3}.Release|x64.Build.0 = Release|Any CPU
 		{B73954A2-AAB4-4AE7-8C59-E77B36F905C3}.Release|x86.ActiveCfg = Release|Any CPU
 		{B73954A2-AAB4-4AE7-8C59-E77B36F905C3}.Release|x86.Build.0 = Release|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Debug|x64.Build.0 = Debug|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Debug|x86.Build.0 = Debug|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x64.ActiveCfg = Release|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x64.Build.0 = Release|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x86.ActiveCfg = Release|Any CPU
+		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

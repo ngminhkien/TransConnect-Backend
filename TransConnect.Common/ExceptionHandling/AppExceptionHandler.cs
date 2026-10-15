@@ -39,6 +39,7 @@ public class AppExceptionHandler(ILogger<AppExceptionHandler> logger) : IExcepti
         UnauthorizedAppException e => (StatusCodes.Status401Unauthorized, e.ErrorCode, e.Message),
         ForbiddenAppException e => (StatusCodes.Status403Forbidden, e.ErrorCode, e.Message),
         TooManyRequestsException e => (StatusCodes.Status429TooManyRequests, e.ErrorCode, e.Message),
+        ServiceUnavailableAppException e => (StatusCodes.Status503ServiceUnavailable, e.ErrorCode, e.Message),
         _ => (StatusCodes.Status500InternalServerError, AppErrorCodes.InternalError, "Đã xảy ra lỗi hệ thống.")
     };
 }

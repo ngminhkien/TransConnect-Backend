@@ -1,5 +1,9 @@
 # TransConnect Backend
 
+**Test từ đầu:** [luồng thủ công đầy đủ + mọi DTO mẫu](docs/full-manual-test-flow.md), [Postman collection](docs/http/TransConnect-full-flow.postman_collection.json), [REST Client](docs/http/full-flow.http). Gồm 125 request theo 8 nhóm Identity → Organization → Member → Driver → Vehicle → Compliance demo → RBAC → phiên/reset. Gửi từng request, nhập OTP/token lời mời tại điểm dừng.
+
+**15/10 — demo hồ sơ nhẹ RAM:** đã tích hợp module Compliance vào .NET, lưu file S3 thật nhưng scan/OCR mô phỏng. Mặc định tắt, chỉ Development; dùng SQL Server/JWT hiện có, không cần Python/Redis/ClamAV. Xem [hướng dẫn từ bước license AIStor đến Swagger](docs/compliance-demo-setup.md). Migration mới chưa apply DB thật; không coi đây là xác minh giấy tờ production.
+
 Luồng nghiệm thu backend hiện có: [giai đoạn 1 — nền tảng](docs/phase-1-foundation-test-flow.md) (tài khoản theo nhóm, tổ chức/nhân viên/tài xế/xe, quota/audit, OTP/phiên/RBAC, email và SQL Server).
 
 Ngày 13/10 thêm module Operator với DbContext/schema/migrations riêng; Host Development migrate Identity, Notification và Operator. Customer/Operator là hai nhóm công khai; Driver dùng Operator; Admin login với accountGroup InternalAdmin. Xem [quyết định và giới hạn triển khai](../TransConnect-Docs/09-decisions/phase-1-foundation-2026-10-13.md). Migration mới chưa được apply vào DB phát triển.

@@ -1,0 +1,4686 @@
+{
+  "info": {
+    "name": "TransConnect - Full manual test flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Identity -> Organizations -> Members -> Drivers -> Vehicles -> Compliance demo -> RBAC -> Sessions. Send individually; fill OTP/invitation tokens from local email. See docs/full-manual-test-flow.md. No real credentials included."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5267",
+      "type": "string"
+    },
+    {
+      "key": "runId",
+      "value": "20261015a",
+      "type": "string"
+    },
+    {
+      "key": "testPassword",
+      "value": "Demo123456",
+      "type": "string"
+    },
+    {
+      "key": "resetPassword",
+      "value": "Demo654321",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sampleFile",
+      "value": "./synthetic-example.png",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerRefresh",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerRefresh",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerBToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dispatcherToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dispatcherId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverAccountId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerBOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dispatcherOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerBInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dispatcherInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "driverBInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newDriverInvitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resetOtp",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "googleIdToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "replayedRefresh",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orgId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orgBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerMemberId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dispatcherMemberId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "engagementId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "engagementBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vehicleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "linkId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "permissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rolesManagePermissionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "documentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "infectedDocumentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "unavailableDocumentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ocrFailedDocumentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rejectedDocumentId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Identity setup",
+      "item": [
+        {
+          "name": "Register customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\",\n  \"fullName\": \"QA customer\",\n  \"phoneNumber\": \"0900000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Register owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\",\n  \"fullName\": \"QA owner\",\n  \"phoneNumber\": \"0900000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"ownerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"ownerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"ownerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Register manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-manager-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\",\n  \"fullName\": \"QA manager\",\n  \"phoneNumber\": \"0900000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"managerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"managerId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Register dispatcher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-dispatcher-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\",\n  \"fullName\": \"QA dispatcher\",\n  \"phoneNumber\": \"0900000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"dispatcherToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"dispatcherId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Register driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-driver-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\",\n  \"fullName\": \"QA driver\",\n  \"phoneNumber\": \"0900000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"driverToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"driverAccountId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Register ownerB",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-b-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\",\n  \"fullName\": \"QA ownerB\",\n  \"phoneNumber\": \"0900000001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"ownerBToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"ownerBId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Verify customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "description": "VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"code\": \"{{customerOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Verify owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "description": "VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-{{runId}}@example.com\",\n  \"code\": \"{{ownerOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Verify manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "description": "VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-manager-{{runId}}@example.com\",\n  \"code\": \"{{managerOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Verify dispatcher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "description": "VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-dispatcher-{{runId}}@example.com\",\n  \"code\": \"{{dispatcherOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Verify driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "description": "VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-driver-{{runId}}@example.com\",\n  \"code\": \"{{driverOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Verify ownerB",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/verify-email",
+            "description": "VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-b-{{runId}}@example.com\",\n  \"code\": \"{{ownerBOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "LoginRequest; lưu token riêng của từng actor. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "LoginRequest; lưu token riêng của từng actor. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"ownerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"ownerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"ownerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "LoginRequest; lưu token riêng của từng actor. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-manager-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"managerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"managerId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login dispatcher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "LoginRequest; lưu token riêng của từng actor. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-dispatcher-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"dispatcherToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"dispatcherId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "LoginRequest; lưu token riêng của từng actor. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-driver-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"driverToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"driverAccountId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login ownerB",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "LoginRequest; lưu token riêng của từng actor. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-b-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"ownerBToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"ownerBId\", payload.data.accountId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Điền admin của DB test, không register InternalAdmin. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"InternalAdmin\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"adminToken\", payload.data.accessToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Me customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/me",
+            "description": "CurrentUserResponse; quyền/roles đọc DB. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Me owner",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/me",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Resend owner verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/resend-verification",
+            "description": "ResendVerificationRequest; nhánh tùy chọn trước verify, mã cũ bị vô hiệu khi cấp mới. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Operator\",\n  \"email\": \"qa-owner-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Google optional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/google",
+            "description": "GoogleLoginRequest; chỉ gửi khi đã cấu hình ClientId và có Google ID token hợp lệ. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"idToken\": \"{{googleIdToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Organizations",
+      "item": [
+        {
+          "name": "Submit organization A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations",
+            "description": "SubmitOrganizationRequest; endpoint anonymous. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nhà xe QA A\",\n  \"registrationNumber\": \"QA-{{runId}}-A\",\n  \"ownerEmail\": \"qa-owner-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"orgId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Submit organization B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations",
+            "description": "SubmitOrganizationRequest; endpoint anonymous. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nhà xe QA B\",\n  \"registrationNumber\": \"QA-{{runId}}-B\",\n  \"ownerEmail\": \"qa-owner-b-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"orgBId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin list organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Approve organization A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/review",
+            "description": "ReviewRequest; tự gửi lời mời Owner, lấy token trong email. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"note\": \"Đã kiểm tra hồ sơ giả lập QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Approve organization B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgBId}}/review",
+            "description": "ReviewRequest; tự gửi lời mời Owner, lấy token trong email. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"note\": \"Đã kiểm tra hồ sơ giả lập QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reissue owner invitation optional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/owner-invitation",
+            "description": "Không body; chỉ chạy trước Owner accept. Sau có Owner trả 409. Điền token mới từ email. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Accept owner A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/invitations/accept",
+            "description": "AcceptInvitationRequest; JWT đúng người nhận, đã verify. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{ownerInvitationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Accept owner B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerBToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/invitations/accept",
+            "description": "AcceptInvitationRequest; JWT đúng người nhận, đã verify. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{ownerBInvitationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Owner list organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Owner get A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Cross organization forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgBId}}",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Members and quotas",
+      "item": [
+        {
+          "name": "Invite manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/invitations",
+            "description": "InviteMemberRequest; đọc token email đúng người nhận. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa-manager-{{runId}}@example.com\",\n  \"role\": \"Manager\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"invitationId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Accept manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/invitations/accept",
+            "description": "AcceptInvitationRequest; JWT người nhận đã verify. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{managerInvitationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"managerMemberId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite dispatcher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/invitations",
+            "description": "InviteMemberRequest; đọc token email đúng người nhận. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa-dispatcher-{{runId}}@example.com\",\n  \"role\": \"Dispatcher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"invitationId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Accept dispatcher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{dispatcherToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/invitations/accept",
+            "description": "AcceptInvitationRequest; JWT người nhận đã verify. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{dispatcherInvitationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"dispatcherMemberId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Owner list members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/members",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Manager member-list forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/members",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Demote manager",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}",
+            "description": "UpdateMemberRequest; kiểm tra quyền giữa từng bước. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Dispatcher\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Restore manager",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}",
+            "description": "UpdateMemberRequest; kiểm tra quyền giữa từng bước. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Manager\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Deactivate manager",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}",
+            "description": "UpdateMemberRequest; kiểm tra quyền giữa từng bước. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Manager\",\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reactivate manager",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}",
+            "description": "UpdateMemberRequest; kiểm tra quyền giữa từng bước. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Manager\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Set employee limit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/employee-limit",
+            "description": "EmployeeLimitRequest; trước đó kiểm tra lời mời thứ tư trả 409 ở quota mặc định 3. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limit\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite spare employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/invitations",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa-spare-{{runId}}@example.com\",\n  \"role\": \"Dispatcher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"invitationId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Revoke spare invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/invitations/{{invitationId}}",
+            "description": "Không body; không dùng invitation đã accept. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Organization audit",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/audit",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Drivers",
+      "item": [
+        {
+          "name": "Submit driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{driverToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/drivers",
+            "description": "SubmitDriverRequest; driverId khác accountId. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Tài xế QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"driverId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Driver me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{driverToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/drivers/me",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin pending drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/drivers/pending",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Approve driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/drivers/{{driverId}}/review",
+            "description": "ReviewRequest, không có OCR/giấy tờ thật. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"note\": \"Đã kiểm tra tài xế giả lập QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite driver to A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/drivers/{{driverId}}/invitations",
+            "description": "Không body. Lấy token từ email sau mỗi lời mời. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Driver accept A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{driverToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/drivers/invitations/accept",
+            "description": "AcceptInvitationRequest; lưu ID engagement trả về. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{driverInvitationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"engagementId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite driver to B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerBToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgBId}}/drivers/{{driverId}}/invitations",
+            "description": "Không body. Lấy token từ email sau mỗi lời mời. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Driver accept B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{driverToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/drivers/invitations/accept",
+            "description": "AcceptInvitationRequest; lưu ID engagement trả về. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{driverBInvitationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"engagementBId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Organization drivers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/drivers",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Driver lacks member permission",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{driverToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/vehicles",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Set driver limit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/driver-limit",
+            "description": "DriverLimitRequest; active engagement ở A chiếm 1 chỗ. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limit\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Remove driver limit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/driver-limit",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limit\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite unregistered driver optional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/driver-invitations",
+            "description": "InviteDriverRequest; người nhận phải register/verify/submit/review trước accept; lưu token vào newDriverInvitationToken. Dùng JWT người nhận cho accept. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"qa-driver-new-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "End driver A",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{driverToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/drivers/{{engagementId}}",
+            "description": "Không body; chạy sau kiểm tra cộng tác A/B, giữ lịch sử. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 Vehicles",
+      "item": [
+        {
+          "name": "Admin link vehicle A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/vehicles",
+            "description": "LinkVehicleRequest; đổi biển số nếu DB còn link từ lượt trước. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationPlate\": \"51A-123.45\",\n  \"description\": \"Xe QA\",\n  \"verificationReference\": \"Hồ sơ giả lập QA đã được kiểm tra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.vehicleId !== undefined) pm.collectionVariables.set(\"vehicleId\", payload.data.vehicleId);",
+                  "    if (payload.data.linkId !== undefined) pm.collectionVariables.set(\"linkId\", payload.data.linkId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List vehicles A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/vehicles",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Suspend vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/vehicles/{{linkId}}/suspension",
+            "description": "SuspendVehicleRequest; liên kết vẫn chiếm xe. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isSuspended\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "B cannot link suspended vehicle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgBId}}/vehicles",
+            "description": " Expected HTTP 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationPlate\": \"51A-123.45\",\n  \"description\": \"Xe QA\",\n  \"verificationReference\": \"Hồ sơ giả lập QA đã được kiểm tra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 409\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Resume vehicle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/vehicles/{{linkId}}/suspension",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isSuspended\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "End vehicle link A",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgId}}/vehicles/{{linkId}}",
+            "description": "Không body. EndReason/EndedBy chưa triển khai. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin link same vehicle B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/organizations/{{orgBId}}/vehicles",
+            "description": "Cùng vehicleId, linkId mới. Lịch sử A giữ nguyên. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationPlate\": \"51A-123.45\",\n  \"description\": \"Xe QA\",\n  \"verificationReference\": \"Hồ sơ giả lập QA đã được kiểm tra\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 Compliance demo",
+      "item": [
+        {
+          "name": "Upload demo success",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents",
+            "description": "UploadDemoDocumentRequest; chọn file giả lập; storage thật, không quét/OCR thật. Expected HTTP 200.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "SyntheticDataConfirmed",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "File",
+                  "type": "file",
+                  "src": "",
+                  "description": "Choose a synthetic PNG/JPEG/PDF <=8 MiB"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"documentId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List my demo documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get my demo document",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download before simulation forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}/download",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Simulate success",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}/simulate",
+            "description": "SimulateDocumentRequest; SIMULATED_CLEAN / NOT_VERIFIED. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"Success\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Approve demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}/review",
+            "description": "ReviewDemoDocumentRequest; tự duyệt chỉ để trình diễn. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download demo attachment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}/download",
+            "description": "Binary .bin; không có JSON data, không preview inline. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Other account cannot download",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}/download",
+            "description": " Expected HTTP 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 404\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload demo Infected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "SyntheticDataConfirmed",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "File",
+                  "type": "file",
+                  "src": "",
+                  "description": "Choose a synthetic PNG/JPEG/PDF <=8 MiB"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"infectedDocumentId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Simulate Infected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{infectedDocumentId}}/simulate",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"Infected\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download blocked Infected",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{infectedDocumentId}}/download",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload demo ScannerUnavailable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "SyntheticDataConfirmed",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "File",
+                  "type": "file",
+                  "src": "",
+                  "description": "Choose a synthetic PNG/JPEG/PDF <=8 MiB"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"unavailableDocumentId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Simulate ScannerUnavailable",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{unavailableDocumentId}}/simulate",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"ScannerUnavailable\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download blocked ScannerUnavailable",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{unavailableDocumentId}}/download",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload demo OcrFailed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "SyntheticDataConfirmed",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "File",
+                  "type": "file",
+                  "src": "",
+                  "description": "Choose a synthetic PNG/JPEG/PDF <=8 MiB"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"ocrFailedDocumentId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Simulate OcrFailed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{ocrFailedDocumentId}}/simulate",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"OcrFailed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download blocked OcrFailed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{ocrFailedDocumentId}}/download",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload rejected demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "SyntheticDataConfirmed",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "File",
+                  "type": "file",
+                  "src": "",
+                  "description": "Choose a synthetic PNG/JPEG/PDF <=8 MiB"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"rejectedDocumentId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Simulate before reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}/simulate",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"Success\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reject demo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}/review",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Rejected download forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}/download",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete documentId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{documentId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete infectedDocumentId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{infectedDocumentId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete unavailableDocumentId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{unavailableDocumentId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete ocrFailedDocumentId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{ocrFailedDocumentId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete rejectedDocumentId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 RBAC",
+      "item": [
+        {
+          "name": "Customer roles forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin list roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin list permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/permissions",
+            "description": "Điền rolesManagePermissionId từ item có code roles.manage. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) { const p = pm.response.json().data.find(x => x.code === \"roles.manage\"); if (p) pm.collectionVariables.set(\"rolesManagePermissionId\", p.id); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create QA role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/roles",
+            "description": "CreateRoleRequest Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QAReader-{{runId}}\",\n  \"description\": \"Vai trò QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"roleId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create QA permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/permissions",
+            "description": "CreatePermissionRequest Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"qa.read.{{runId}}\",\n  \"description\": \"Quyền QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.id !== undefined) pm.collectionVariables.set(\"permissionId\", payload.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get QA role",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update QA role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}",
+            "description": "UpdateRoleRequest Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QAReaderUpdated-{{runId}}\",\n  \"description\": \"Đã cập nhật QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Assign QA permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}/permissions/{{permissionId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Assign QA role to customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}/users/{{customerId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Customer me after DB permission change",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/me",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Grant roles manage to QA role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}/permissions/{{rolesManagePermissionId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Relogin customer for claims",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Customer can manage roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Revoke roles manage",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}/permissions/{{rolesManagePermissionId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Relogin after revoke",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Customer roles forbidden again",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles",
+            "description": " Expected HTTP 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 403\", function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Remove QA permission from role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}/permissions/{{permissionId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Remove QA role from customer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}/users/{{customerId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete QA permission",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/permissions/{{permissionId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete QA role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}",
+            "description": " Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08 Sessions and reset",
+      "item": [
+        {
+          "name": "Fresh customer session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Copy customerRefresh vào replayedRefresh trước bước refresh nếu thử replay. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Rotate customer refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "RefreshTokenRequest; thay cả access/refresh bằng response mới. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{customerRefresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Replay old refresh optional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "Nhánh tùy chọn: thu hồi refresh account, login lại trước các bước sau. Expected HTTP 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{replayedRefresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login before logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Logout customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout",
+            "description": "Cần JWT; RefreshTokenRequest. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{customerRefresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Refresh logged out token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": " Expected HTTP 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{customerRefresh}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 401\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Forgot customer password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/forgot-password",
+            "description": "ForgotPasswordRequest; nhập resetOtp từ email password-reset. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reset customer password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/reset-password",
+            "description": "ResetPasswordRequest; revoke toàn bộ refresh cũ. Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"code\": \"{{resetOtp}}\",\n  \"newPassword\": \"{{resetPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Login with reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": " Expected HTTP 200.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountGroup\": \"Customer\",\n  \"email\": \"qa-customer-{{runId}}@example.com\",\n  \"password\": \"{{resetPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const payload = pm.response.json();",
+                  "  if (payload.succeeded && payload.data) {",
+                  "    if (payload.data.accessToken !== undefined) pm.collectionVariables.set(\"customerToken\", payload.data.accessToken);",
+                  "    if (payload.data.accountId !== undefined) pm.collectionVariables.set(\"customerId\", payload.data.accountId);",
+                  "    if (payload.data.refreshToken !== undefined) pm.collectionVariables.set(\"customerRefresh\", payload.data.refreshToken);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Test email development only",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/dev/test-email?to=qa-notify-{{runId}}@example.com",
+            "description": "Không body; File provider, không SMTP thật. Expected HTTP 200."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Expected HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

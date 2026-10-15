@@ -1,0 +1,1187 @@
+# Full flow: đọc ../full-manual-test-flow.md trước khi gửi.
+# Chọn từng request; OTP/invitation/IDs cần điền từ response và email local.
+# Không commit token/credentials sau khi điền.
+
+@baseUrl = http://localhost:5267
+@runId = 20261015a
+@testPassword = Demo123456
+@resetPassword = Demo654321
+@adminEmail =
+@adminPassword =
+@sampleFile = ./synthetic-example.png
+@customerToken =
+@customerRefresh =
+@customerId =
+@ownerToken =
+@ownerRefresh =
+@ownerId =
+@ownerBToken =
+@ownerBId =
+@managerToken =
+@managerId =
+@dispatcherToken =
+@dispatcherId =
+@driverToken =
+@driverAccountId =
+@driverId =
+@adminToken =
+@customerOtp =
+@ownerOtp =
+@ownerBOtp =
+@managerOtp =
+@dispatcherOtp =
+@driverOtp =
+@ownerInvitationToken =
+@ownerBInvitationToken =
+@managerInvitationToken =
+@dispatcherInvitationToken =
+@driverInvitationToken =
+@driverBInvitationToken =
+@newDriverInvitationToken =
+@resetOtp =
+@googleIdToken =
+@replayedRefresh =
+@orgId =
+@orgBId =
+@managerMemberId =
+@dispatcherMemberId =
+@invitationId =
+@engagementId =
+@engagementBId =
+@vehicleId =
+@linkId =
+@roleId =
+@permissionId =
+@rolesManagePermissionId =
+@documentId =
+@infectedDocumentId =
+@unavailableDocumentId =
+@ocrFailedDocumentId =
+@rejectedDocumentId =
+
+### 01 Identity setup / Register customer
+# Expected HTTP 200; RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này.
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{testPassword}}",
+  "fullName": "QA customer",
+  "phoneNumber": "0900000001"
+}
+
+### 01 Identity setup / Register owner
+# Expected HTTP 200; RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này.
+# Save from data: {"ownerToken": "accessToken", "ownerId": "accountId", "ownerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-{{runId}}@example.com",
+  "password": "{{testPassword}}",
+  "fullName": "QA owner",
+  "phoneNumber": "0900000001"
+}
+
+### 01 Identity setup / Register manager
+# Expected HTTP 200; RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này.
+# Save from data: {"managerToken": "accessToken", "managerId": "accountId"}
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-manager-{{runId}}@example.com",
+  "password": "{{testPassword}}",
+  "fullName": "QA manager",
+  "phoneNumber": "0900000001"
+}
+
+### 01 Identity setup / Register dispatcher
+# Expected HTTP 200; RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này.
+# Save from data: {"dispatcherToken": "accessToken", "dispatcherId": "accountId"}
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-dispatcher-{{runId}}@example.com",
+  "password": "{{testPassword}}",
+  "fullName": "QA dispatcher",
+  "phoneNumber": "0900000001"
+}
+
+### 01 Identity setup / Register driver
+# Expected HTTP 200; RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này.
+# Save from data: {"driverToken": "accessToken", "driverAccountId": "accountId"}
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-driver-{{runId}}@example.com",
+  "password": "{{testPassword}}",
+  "fullName": "QA driver",
+  "phoneNumber": "0900000001"
+}
+
+### 01 Identity setup / Register ownerB
+# Expected HTTP 200; RegisterRequest; email mới cho mỗi runId. Đọc OTP từ email File sau request này.
+# Save from data: {"ownerBToken": "accessToken", "ownerBId": "accountId"}
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-b-{{runId}}@example.com",
+  "password": "{{testPassword}}",
+  "fullName": "QA ownerB",
+  "phoneNumber": "0900000001"
+}
+
+### 01 Identity setup / Verify customer
+# Expected HTTP 200; VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi.
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "code": "{{customerOtp}}"
+}
+
+### 01 Identity setup / Verify owner
+# Expected HTTP 200; VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi.
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-{{runId}}@example.com",
+  "code": "{{ownerOtp}}"
+}
+
+### 01 Identity setup / Verify manager
+# Expected HTTP 200; VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi.
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-manager-{{runId}}@example.com",
+  "code": "{{managerOtp}}"
+}
+
+### 01 Identity setup / Verify dispatcher
+# Expected HTTP 200; VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi.
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-dispatcher-{{runId}}@example.com",
+  "code": "{{dispatcherOtp}}"
+}
+
+### 01 Identity setup / Verify driver
+# Expected HTTP 200; VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi.
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-driver-{{runId}}@example.com",
+  "code": "{{driverOtp}}"
+}
+
+### 01 Identity setup / Verify ownerB
+# Expected HTTP 200; VerifyEmailRequest; điền OTP email-verification của đúng account trước khi gửi.
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-b-{{runId}}@example.com",
+  "code": "{{ownerBOtp}}"
+}
+
+### 01 Identity setup / Login customer
+# Expected HTTP 200; LoginRequest; lưu token riêng của từng actor.
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 01 Identity setup / Login owner
+# Expected HTTP 200; LoginRequest; lưu token riêng của từng actor.
+# Save from data: {"ownerToken": "accessToken", "ownerId": "accountId", "ownerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 01 Identity setup / Login manager
+# Expected HTTP 200; LoginRequest; lưu token riêng của từng actor.
+# Save from data: {"managerToken": "accessToken", "managerId": "accountId"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-manager-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 01 Identity setup / Login dispatcher
+# Expected HTTP 200; LoginRequest; lưu token riêng của từng actor.
+# Save from data: {"dispatcherToken": "accessToken", "dispatcherId": "accountId"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-dispatcher-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 01 Identity setup / Login driver
+# Expected HTTP 200; LoginRequest; lưu token riêng của từng actor.
+# Save from data: {"driverToken": "accessToken", "driverAccountId": "accountId"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-driver-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 01 Identity setup / Login ownerB
+# Expected HTTP 200; LoginRequest; lưu token riêng của từng actor.
+# Save from data: {"ownerBToken": "accessToken", "ownerBId": "accountId"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-b-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 01 Identity setup / Login admin
+# Expected HTTP 200; Điền admin của DB test, không register InternalAdmin.
+# Save from data: {"adminToken": "accessToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "InternalAdmin",
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### 01 Identity setup / Me customer
+# Expected HTTP 200; CurrentUserResponse; quyền/roles đọc DB.
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{customerToken}}
+
+### 01 Identity setup / Me owner
+# Expected HTTP 200;
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{ownerToken}}
+
+### 01 Identity setup / Resend owner verification
+# Expected HTTP 200; ResendVerificationRequest; nhánh tùy chọn trước verify, mã cũ bị vô hiệu khi cấp mới.
+POST {{baseUrl}}/auth/resend-verification
+Content-Type: application/json
+
+{
+  "accountGroup": "Operator",
+  "email": "qa-owner-{{runId}}@example.com"
+}
+
+### 01 Identity setup / Google optional
+# Expected HTTP 200; GoogleLoginRequest; chỉ gửi khi đã cấu hình ClientId và có Google ID token hợp lệ.
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "idToken": "{{googleIdToken}}"
+}
+
+### 02 Organizations / Submit organization A
+# Expected HTTP 200; SubmitOrganizationRequest; endpoint anonymous.
+# Save from data: {"orgId": "id"}
+POST {{baseUrl}}/organizations
+Content-Type: application/json
+
+{
+  "name": "Nhà xe QA A",
+  "registrationNumber": "QA-{{runId}}-A",
+  "ownerEmail": "qa-owner-{{runId}}@example.com"
+}
+
+### 02 Organizations / Submit organization B
+# Expected HTTP 200; SubmitOrganizationRequest; endpoint anonymous.
+# Save from data: {"orgBId": "id"}
+POST {{baseUrl}}/organizations
+Content-Type: application/json
+
+{
+  "name": "Nhà xe QA B",
+  "registrationNumber": "QA-{{runId}}-B",
+  "ownerEmail": "qa-owner-b-{{runId}}@example.com"
+}
+
+### 02 Organizations / Admin list organizations
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations
+Authorization: Bearer {{adminToken}}
+
+### 02 Organizations / Approve organization A
+# Expected HTTP 200; ReviewRequest; tự gửi lời mời Owner, lấy token trong email.
+POST {{baseUrl}}/organizations/{{orgId}}/review
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "approved": true,
+  "note": "Đã kiểm tra hồ sơ giả lập QA"
+}
+
+### 02 Organizations / Approve organization B
+# Expected HTTP 200; ReviewRequest; tự gửi lời mời Owner, lấy token trong email.
+POST {{baseUrl}}/organizations/{{orgBId}}/review
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "approved": true,
+  "note": "Đã kiểm tra hồ sơ giả lập QA"
+}
+
+### 02 Organizations / Reissue owner invitation optional
+# Expected HTTP 200; Không body; chỉ chạy trước Owner accept. Sau có Owner trả 409. Điền token mới từ email.
+POST {{baseUrl}}/organizations/{{orgId}}/owner-invitation
+Authorization: Bearer {{adminToken}}
+
+### 02 Organizations / Accept owner A
+# Expected HTTP 200; AcceptInvitationRequest; JWT đúng người nhận, đã verify.
+POST {{baseUrl}}/organizations/invitations/accept
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "token": "{{ownerInvitationToken}}"
+}
+
+### 02 Organizations / Accept owner B
+# Expected HTTP 200; AcceptInvitationRequest; JWT đúng người nhận, đã verify.
+POST {{baseUrl}}/organizations/invitations/accept
+Authorization: Bearer {{ownerBToken}}
+Content-Type: application/json
+
+{
+  "token": "{{ownerBInvitationToken}}"
+}
+
+### 02 Organizations / Owner list organizations
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations
+Authorization: Bearer {{ownerToken}}
+
+### 02 Organizations / Owner get A
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations/{{orgId}}
+Authorization: Bearer {{ownerToken}}
+
+### 02 Organizations / Cross organization forbidden
+# Expected HTTP 403;
+GET {{baseUrl}}/organizations/{{orgBId}}
+Authorization: Bearer {{ownerToken}}
+
+### 03 Members and quotas / Invite manager
+# Expected HTTP 200; InviteMemberRequest; đọc token email đúng người nhận.
+# Save from data: {"invitationId": "id"}
+POST {{baseUrl}}/organizations/{{orgId}}/invitations
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "email": "qa-manager-{{runId}}@example.com",
+  "role": "Manager"
+}
+
+### 03 Members and quotas / Accept manager
+# Expected HTTP 200; AcceptInvitationRequest; JWT người nhận đã verify.
+# Save from data: {"managerMemberId": "id"}
+POST {{baseUrl}}/organizations/invitations/accept
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "token": "{{managerInvitationToken}}"
+}
+
+### 03 Members and quotas / Invite dispatcher
+# Expected HTTP 200; InviteMemberRequest; đọc token email đúng người nhận.
+# Save from data: {"invitationId": "id"}
+POST {{baseUrl}}/organizations/{{orgId}}/invitations
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "email": "qa-dispatcher-{{runId}}@example.com",
+  "role": "Dispatcher"
+}
+
+### 03 Members and quotas / Accept dispatcher
+# Expected HTTP 200; AcceptInvitationRequest; JWT người nhận đã verify.
+# Save from data: {"dispatcherMemberId": "id"}
+POST {{baseUrl}}/organizations/invitations/accept
+Authorization: Bearer {{dispatcherToken}}
+Content-Type: application/json
+
+{
+  "token": "{{dispatcherInvitationToken}}"
+}
+
+### 03 Members and quotas / Owner list members
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations/{{orgId}}/members
+Authorization: Bearer {{ownerToken}}
+
+### 03 Members and quotas / Manager member-list forbidden
+# Expected HTTP 403;
+GET {{baseUrl}}/organizations/{{orgId}}/members
+Authorization: Bearer {{managerToken}}
+
+### 03 Members and quotas / Demote manager
+# Expected HTTP 200; UpdateMemberRequest; kiểm tra quyền giữa từng bước.
+PUT {{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "role": "Dispatcher",
+  "isActive": true
+}
+
+### 03 Members and quotas / Restore manager
+# Expected HTTP 200; UpdateMemberRequest; kiểm tra quyền giữa từng bước.
+PUT {{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "role": "Manager",
+  "isActive": true
+}
+
+### 03 Members and quotas / Deactivate manager
+# Expected HTTP 200; UpdateMemberRequest; kiểm tra quyền giữa từng bước.
+PUT {{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "role": "Manager",
+  "isActive": false
+}
+
+### 03 Members and quotas / Reactivate manager
+# Expected HTTP 200; UpdateMemberRequest; kiểm tra quyền giữa từng bước.
+PUT {{baseUrl}}/organizations/{{orgId}}/members/{{managerMemberId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "role": "Manager",
+  "isActive": true
+}
+
+### 03 Members and quotas / Set employee limit
+# Expected HTTP 200; EmployeeLimitRequest; trước đó kiểm tra lời mời thứ tư trả 409 ở quota mặc định 3.
+PUT {{baseUrl}}/organizations/{{orgId}}/employee-limit
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "limit": 4
+}
+
+### 03 Members and quotas / Invite spare employee
+# Expected HTTP 200;
+# Save from data: {"invitationId": "id"}
+POST {{baseUrl}}/organizations/{{orgId}}/invitations
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "email": "qa-spare-{{runId}}@example.com",
+  "role": "Dispatcher"
+}
+
+### 03 Members and quotas / Revoke spare invitation
+# Expected HTTP 200; Không body; không dùng invitation đã accept.
+DELETE {{baseUrl}}/organizations/{{orgId}}/invitations/{{invitationId}}
+Authorization: Bearer {{ownerToken}}
+
+### 03 Members and quotas / Organization audit
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations/{{orgId}}/audit
+Authorization: Bearer {{ownerToken}}
+
+### 04 Drivers / Submit driver
+# Expected HTTP 200; SubmitDriverRequest; driverId khác accountId.
+# Save from data: {"driverId": "id"}
+POST {{baseUrl}}/drivers
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Tài xế QA"
+}
+
+### 04 Drivers / Driver me
+# Expected HTTP 200;
+GET {{baseUrl}}/drivers/me
+Authorization: Bearer {{driverToken}}
+
+### 04 Drivers / Admin pending drivers
+# Expected HTTP 200;
+GET {{baseUrl}}/drivers/pending
+Authorization: Bearer {{adminToken}}
+
+### 04 Drivers / Approve driver
+# Expected HTTP 200; ReviewRequest, không có OCR/giấy tờ thật.
+POST {{baseUrl}}/drivers/{{driverId}}/review
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "approved": true,
+  "note": "Đã kiểm tra tài xế giả lập QA"
+}
+
+### 04 Drivers / Invite driver to A
+# Expected HTTP 200; Không body. Lấy token từ email sau mỗi lời mời.
+POST {{baseUrl}}/organizations/{{orgId}}/drivers/{{driverId}}/invitations
+Authorization: Bearer {{ownerToken}}
+
+### 04 Drivers / Driver accept A
+# Expected HTTP 200; AcceptInvitationRequest; lưu ID engagement trả về.
+# Save from data: {"engagementId": "id"}
+POST {{baseUrl}}/drivers/invitations/accept
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "token": "{{driverInvitationToken}}"
+}
+
+### 04 Drivers / Invite driver to B
+# Expected HTTP 200; Không body. Lấy token từ email sau mỗi lời mời.
+POST {{baseUrl}}/organizations/{{orgBId}}/drivers/{{driverId}}/invitations
+Authorization: Bearer {{ownerBToken}}
+
+### 04 Drivers / Driver accept B
+# Expected HTTP 200; AcceptInvitationRequest; lưu ID engagement trả về.
+# Save from data: {"engagementBId": "id"}
+POST {{baseUrl}}/drivers/invitations/accept
+Authorization: Bearer {{driverToken}}
+Content-Type: application/json
+
+{
+  "token": "{{driverBInvitationToken}}"
+}
+
+### 04 Drivers / Organization drivers
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations/{{orgId}}/drivers
+Authorization: Bearer {{managerToken}}
+
+### 04 Drivers / Driver lacks member permission
+# Expected HTTP 403;
+GET {{baseUrl}}/organizations/{{orgId}}/vehicles
+Authorization: Bearer {{driverToken}}
+
+### 04 Drivers / Set driver limit
+# Expected HTTP 200; DriverLimitRequest; active engagement ở A chiếm 1 chỗ.
+PUT {{baseUrl}}/organizations/{{orgId}}/driver-limit
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "limit": 1
+}
+
+### 04 Drivers / Remove driver limit
+# Expected HTTP 200;
+PUT {{baseUrl}}/organizations/{{orgId}}/driver-limit
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "limit": null
+}
+
+### 04 Drivers / Invite unregistered driver optional
+# Expected HTTP 200; InviteDriverRequest; người nhận phải register/verify/submit/review trước accept; lưu token vào newDriverInvitationToken. Dùng JWT người nhận cho accept.
+POST {{baseUrl}}/organizations/{{orgId}}/driver-invitations
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "email": "qa-driver-new-{{runId}}@example.com"
+}
+
+### 04 Drivers / End driver A
+# Expected HTTP 200; Không body; chạy sau kiểm tra cộng tác A/B, giữ lịch sử.
+DELETE {{baseUrl}}/organizations/{{orgId}}/drivers/{{engagementId}}
+Authorization: Bearer {{driverToken}}
+
+### 05 Vehicles / Admin link vehicle A
+# Expected HTTP 200; LinkVehicleRequest; đổi biển số nếu DB còn link từ lượt trước.
+# Save from data: {"vehicleId": "vehicleId", "linkId": "linkId"}
+POST {{baseUrl}}/organizations/{{orgId}}/vehicles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "registrationPlate": "51A-123.45",
+  "description": "Xe QA",
+  "verificationReference": "Hồ sơ giả lập QA đã được kiểm tra"
+}
+
+### 05 Vehicles / List vehicles A
+# Expected HTTP 200;
+GET {{baseUrl}}/organizations/{{orgId}}/vehicles
+Authorization: Bearer {{managerToken}}
+
+### 05 Vehicles / Suspend vehicle
+# Expected HTTP 200; SuspendVehicleRequest; liên kết vẫn chiếm xe.
+PUT {{baseUrl}}/organizations/{{orgId}}/vehicles/{{linkId}}/suspension
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "isSuspended": true
+}
+
+### 05 Vehicles / B cannot link suspended vehicle
+# Expected HTTP 409;
+POST {{baseUrl}}/organizations/{{orgBId}}/vehicles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "registrationPlate": "51A-123.45",
+  "description": "Xe QA",
+  "verificationReference": "Hồ sơ giả lập QA đã được kiểm tra"
+}
+
+### 05 Vehicles / Resume vehicle
+# Expected HTTP 200;
+PUT {{baseUrl}}/organizations/{{orgId}}/vehicles/{{linkId}}/suspension
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "isSuspended": false
+}
+
+### 05 Vehicles / End vehicle link A
+# Expected HTTP 200; Không body. EndReason/EndedBy chưa triển khai.
+DELETE {{baseUrl}}/organizations/{{orgId}}/vehicles/{{linkId}}
+Authorization: Bearer {{managerToken}}
+
+### 05 Vehicles / Admin link same vehicle B
+# Expected HTTP 200; Cùng vehicleId, linkId mới. Lịch sử A giữ nguyên.
+POST {{baseUrl}}/organizations/{{orgBId}}/vehicles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "registrationPlate": "51A-123.45",
+  "description": "Xe QA",
+  "verificationReference": "Hồ sơ giả lập QA đã được kiểm tra"
+}
+
+### 06 Compliance demo / Upload demo success
+# Expected HTTP 200; UploadDemoDocumentRequest; chọn file giả lập; storage thật, không quét/OCR thật.
+# Save from data: {"documentId": "id"}
+POST {{baseUrl}}/compliance/demo/documents
+Authorization: Bearer {{ownerToken}}
+Content-Type: multipart/form-data; boundary=TransConnectDemoBoundary
+
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="SyntheticDataConfirmed"
+
+true
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="File"; filename="synthetic-example.png"
+Content-Type: application/octet-stream
+
+< {{sampleFile}}
+--TransConnectDemoBoundary--
+
+### 06 Compliance demo / List my demo documents
+# Expected HTTP 200;
+GET {{baseUrl}}/compliance/demo/documents
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Get my demo document
+# Expected HTTP 200;
+GET {{baseUrl}}/compliance/demo/documents/{{documentId}}
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Download before simulation forbidden
+# Expected HTTP 403;
+GET {{baseUrl}}/compliance/demo/documents/{{documentId}}/download
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Simulate success
+# Expected HTTP 200; SimulateDocumentRequest; SIMULATED_CLEAN / NOT_VERIFIED.
+POST {{baseUrl}}/compliance/demo/documents/{{documentId}}/simulate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "scenario": "Success"
+}
+
+### 06 Compliance demo / Approve demo
+# Expected HTTP 200; ReviewDemoDocumentRequest; tự duyệt chỉ để trình diễn.
+POST {{baseUrl}}/compliance/demo/documents/{{documentId}}/review
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "approved": true
+}
+
+### 06 Compliance demo / Download demo attachment
+# Expected HTTP 200; Binary .bin; không có JSON data, không preview inline.
+GET {{baseUrl}}/compliance/demo/documents/{{documentId}}/download
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Other account cannot download
+# Expected HTTP 404;
+GET {{baseUrl}}/compliance/demo/documents/{{documentId}}/download
+Authorization: Bearer {{managerToken}}
+
+### 06 Compliance demo / Upload demo Infected
+# Expected HTTP 200;
+# Save from data: {"infectedDocumentId": "id"}
+POST {{baseUrl}}/compliance/demo/documents
+Authorization: Bearer {{ownerToken}}
+Content-Type: multipart/form-data; boundary=TransConnectDemoBoundary
+
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="SyntheticDataConfirmed"
+
+true
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="File"; filename="synthetic-example.png"
+Content-Type: application/octet-stream
+
+< {{sampleFile}}
+--TransConnectDemoBoundary--
+
+### 06 Compliance demo / Simulate Infected
+# Expected HTTP 200;
+POST {{baseUrl}}/compliance/demo/documents/{{infectedDocumentId}}/simulate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "scenario": "Infected"
+}
+
+### 06 Compliance demo / Download blocked Infected
+# Expected HTTP 403;
+GET {{baseUrl}}/compliance/demo/documents/{{infectedDocumentId}}/download
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Upload demo ScannerUnavailable
+# Expected HTTP 200;
+# Save from data: {"unavailableDocumentId": "id"}
+POST {{baseUrl}}/compliance/demo/documents
+Authorization: Bearer {{ownerToken}}
+Content-Type: multipart/form-data; boundary=TransConnectDemoBoundary
+
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="SyntheticDataConfirmed"
+
+true
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="File"; filename="synthetic-example.png"
+Content-Type: application/octet-stream
+
+< {{sampleFile}}
+--TransConnectDemoBoundary--
+
+### 06 Compliance demo / Simulate ScannerUnavailable
+# Expected HTTP 200;
+POST {{baseUrl}}/compliance/demo/documents/{{unavailableDocumentId}}/simulate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "scenario": "ScannerUnavailable"
+}
+
+### 06 Compliance demo / Download blocked ScannerUnavailable
+# Expected HTTP 403;
+GET {{baseUrl}}/compliance/demo/documents/{{unavailableDocumentId}}/download
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Upload demo OcrFailed
+# Expected HTTP 200;
+# Save from data: {"ocrFailedDocumentId": "id"}
+POST {{baseUrl}}/compliance/demo/documents
+Authorization: Bearer {{ownerToken}}
+Content-Type: multipart/form-data; boundary=TransConnectDemoBoundary
+
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="SyntheticDataConfirmed"
+
+true
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="File"; filename="synthetic-example.png"
+Content-Type: application/octet-stream
+
+< {{sampleFile}}
+--TransConnectDemoBoundary--
+
+### 06 Compliance demo / Simulate OcrFailed
+# Expected HTTP 200;
+POST {{baseUrl}}/compliance/demo/documents/{{ocrFailedDocumentId}}/simulate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "scenario": "OcrFailed"
+}
+
+### 06 Compliance demo / Download blocked OcrFailed
+# Expected HTTP 403;
+GET {{baseUrl}}/compliance/demo/documents/{{ocrFailedDocumentId}}/download
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Upload rejected demo
+# Expected HTTP 200;
+# Save from data: {"rejectedDocumentId": "id"}
+POST {{baseUrl}}/compliance/demo/documents
+Authorization: Bearer {{ownerToken}}
+Content-Type: multipart/form-data; boundary=TransConnectDemoBoundary
+
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="SyntheticDataConfirmed"
+
+true
+--TransConnectDemoBoundary
+Content-Disposition: form-data; name="File"; filename="synthetic-example.png"
+Content-Type: application/octet-stream
+
+< {{sampleFile}}
+--TransConnectDemoBoundary--
+
+### 06 Compliance demo / Simulate before reject
+# Expected HTTP 200;
+POST {{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}/simulate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "scenario": "Success"
+}
+
+### 06 Compliance demo / Reject demo
+# Expected HTTP 200;
+POST {{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}/review
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "approved": false
+}
+
+### 06 Compliance demo / Rejected download forbidden
+# Expected HTTP 403;
+GET {{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}/download
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Delete documentId
+# Expected HTTP 200;
+DELETE {{baseUrl}}/compliance/demo/documents/{{documentId}}
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Delete infectedDocumentId
+# Expected HTTP 200;
+DELETE {{baseUrl}}/compliance/demo/documents/{{infectedDocumentId}}
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Delete unavailableDocumentId
+# Expected HTTP 200;
+DELETE {{baseUrl}}/compliance/demo/documents/{{unavailableDocumentId}}
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Delete ocrFailedDocumentId
+# Expected HTTP 200;
+DELETE {{baseUrl}}/compliance/demo/documents/{{ocrFailedDocumentId}}
+Authorization: Bearer {{ownerToken}}
+
+### 06 Compliance demo / Delete rejectedDocumentId
+# Expected HTTP 200;
+DELETE {{baseUrl}}/compliance/demo/documents/{{rejectedDocumentId}}
+Authorization: Bearer {{ownerToken}}
+
+### 07 RBAC / Customer roles forbidden
+# Expected HTTP 403;
+GET {{baseUrl}}/roles
+Authorization: Bearer {{customerToken}}
+
+### 07 RBAC / Admin list roles
+# Expected HTTP 200;
+GET {{baseUrl}}/roles
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Admin list permissions
+# Expected HTTP 200; Điền rolesManagePermissionId từ item có code roles.manage.
+GET {{baseUrl}}/permissions
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Create QA role
+# Expected HTTP 200; CreateRoleRequest
+# Save from data: {"roleId": "id"}
+POST {{baseUrl}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "QAReader-{{runId}}",
+  "description": "Vai trò QA"
+}
+
+### 07 RBAC / Create QA permission
+# Expected HTTP 200; CreatePermissionRequest
+# Save from data: {"permissionId": "id"}
+POST {{baseUrl}}/permissions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "code": "qa.read.{{runId}}",
+  "description": "Quyền QA"
+}
+
+### 07 RBAC / Get QA role
+# Expected HTTP 200;
+GET {{baseUrl}}/roles/{{roleId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Update QA role
+# Expected HTTP 200; UpdateRoleRequest
+PUT {{baseUrl}}/roles/{{roleId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "QAReaderUpdated-{{runId}}",
+  "description": "Đã cập nhật QA"
+}
+
+### 07 RBAC / Assign QA permission
+# Expected HTTP 200;
+POST {{baseUrl}}/roles/{{roleId}}/permissions/{{permissionId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Assign QA role to customer
+# Expected HTTP 200;
+POST {{baseUrl}}/roles/{{roleId}}/users/{{customerId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Customer me after DB permission change
+# Expected HTTP 200;
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{customerToken}}
+
+### 07 RBAC / Grant roles manage to QA role
+# Expected HTTP 200;
+POST {{baseUrl}}/roles/{{roleId}}/permissions/{{rolesManagePermissionId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Relogin customer for claims
+# Expected HTTP 200;
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 07 RBAC / Customer can manage roles
+# Expected HTTP 200;
+GET {{baseUrl}}/roles
+Authorization: Bearer {{customerToken}}
+
+### 07 RBAC / Revoke roles manage
+# Expected HTTP 200;
+DELETE {{baseUrl}}/roles/{{roleId}}/permissions/{{rolesManagePermissionId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Relogin after revoke
+# Expected HTTP 200;
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 07 RBAC / Customer roles forbidden again
+# Expected HTTP 403;
+GET {{baseUrl}}/roles
+Authorization: Bearer {{customerToken}}
+
+### 07 RBAC / Remove QA permission from role
+# Expected HTTP 200;
+DELETE {{baseUrl}}/roles/{{roleId}}/permissions/{{permissionId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Remove QA role from customer
+# Expected HTTP 200;
+DELETE {{baseUrl}}/roles/{{roleId}}/users/{{customerId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Delete QA permission
+# Expected HTTP 200;
+DELETE {{baseUrl}}/permissions/{{permissionId}}
+Authorization: Bearer {{adminToken}}
+
+### 07 RBAC / Delete QA role
+# Expected HTTP 200;
+DELETE {{baseUrl}}/roles/{{roleId}}
+Authorization: Bearer {{adminToken}}
+
+### 08 Sessions and reset / Fresh customer session
+# Expected HTTP 200; Copy customerRefresh vào replayedRefresh trước bước refresh nếu thử replay.
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 08 Sessions and reset / Rotate customer refresh
+# Expected HTTP 200; RefreshTokenRequest; thay cả access/refresh bằng response mới.
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{customerRefresh}}"
+}
+
+### 08 Sessions and reset / Replay old refresh optional
+# Expected HTTP 401; Nhánh tùy chọn: thu hồi refresh account, login lại trước các bước sau.
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{replayedRefresh}}"
+}
+
+### 08 Sessions and reset / Login before logout
+# Expected HTTP 200;
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{testPassword}}"
+}
+
+### 08 Sessions and reset / Logout customer
+# Expected HTTP 200; Cần JWT; RefreshTokenRequest.
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{customerRefresh}}"
+}
+
+### 08 Sessions and reset / Refresh logged out token
+# Expected HTTP 401;
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{customerRefresh}}"
+}
+
+### 08 Sessions and reset / Forgot customer password
+# Expected HTTP 200; ForgotPasswordRequest; nhập resetOtp từ email password-reset.
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com"
+}
+
+### 08 Sessions and reset / Reset customer password
+# Expected HTTP 200; ResetPasswordRequest; revoke toàn bộ refresh cũ.
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "code": "{{resetOtp}}",
+  "newPassword": "{{resetPassword}}"
+}
+
+### 08 Sessions and reset / Login with reset password
+# Expected HTTP 200;
+# Save from data: {"customerToken": "accessToken", "customerId": "accountId", "customerRefresh": "refreshToken"}
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "accountGroup": "Customer",
+  "email": "qa-customer-{{runId}}@example.com",
+  "password": "{{resetPassword}}"
+}
+
+### 08 Sessions and reset / Test email development only
+# Expected HTTP 200; Không body; File provider, không SMTP thật.
+POST {{baseUrl}}/dev/test-email?to=qa-notify-{{runId}}@example.com
