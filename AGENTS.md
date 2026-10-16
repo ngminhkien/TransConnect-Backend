@@ -90,9 +90,15 @@ dotnet ef database update --project TransConnect.Modules.Identity --startup-proj
 
 Với Notification, đổi project thành `TransConnect.Modules.Notification` và context thành `NotificationDbContext`. Luôn chỉ định `--context`; build lại sau khi thêm migration trước khi dùng `--no-build`.
 
-**Test:** `dotnet test TransConnect.Tests/TransConnect.Tests.csproj` (SDK/runtime .NET 10). `scripts/Test-Core.ps1 -DotnetPath <executable>` build solution/test và đặt DOTNET_ROOT cho testhost; `-NoRestore` khi cache đủ. HTTP contract, auth lifecycle, refresh đồng thời (SQLite file + hai DbContext), OTP, email queue, startup options; sinh SQL migration bằng SQL Server provider nhưng không kết nối DB. Test host dùng Data Protection trong bộ nhớ, tắt worker và không gửi email thật; các host không chạy song song do Serilog bootstrap tĩnh. Chưa có CI/Dockerfile/Compose/script deploy.
+**Test:** `dotnet test TransConnect.Tests/TransConnect.Tests.csproj` (SDK/runtime .NET 10). `scripts/Test-Core.ps1 -DotnetPath <executable>` build solution/test và đặt DOTNET_ROOT cho testhost; `-NoRestore` khi cache đủ. HTTP contract, auth lifecycle, refresh đồng thời (SQLite file + hai DbContext), OTP, email queue, startup options; sinh SQL migration bằng SQL Server provider nhưng không kết nối DB. Test host dùng Data Protection trong bộ nhớ, tắt worker và không gửi email thật; các host không chạy song song do Serilog bootstrap tĩnh. CI hiện có tại `.github/workflows/ci.yml` (xem mục bên dưới); chưa có Dockerfile/Compose triển khai API/script deploy.
 
 **Migration mới:** `20261011000000_HashRefreshTokens` chỉ chuyển dữ liệu token Base64 ASCII sang hash, không đổi schema/snapshot. Phải dừng code cũ khi chuyển đổi; Down từ chối vì hash không đảo ngược. Không tự apply vào DB đang dùng khi chỉ chạy test.
+
+### CI GitHub Actions (16/10/2026)
+
+- `.github/workflows/ci.yml` chạy khi push/PR vào `main` và `workflow_dispatch`: Ubuntu, SDK `10.0.x`, restore solution, build Release, test `TransConnect.Tests` không build/restore lại; upload TRX 7 ngày kể cả khi test thất bại.
+- CI không cần secret, SQL Server/SMTP thật; không chạy Host Development, apply migration hoặc deploy. Chưa có Dockerfile/Compose triển khai API/script deploy; Compose demo storage vẫn riêng.
+- Workflow chỉ được kiểm chứng trên GitHub sau khi chủ dự án push; không ghi CI đã pass nếu chưa có kết quả runner.
 
 ## Quy tắc sửa code và điểm lệch cần nhớ
 

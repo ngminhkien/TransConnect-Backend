@@ -152,6 +152,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Test-Core.ps1 -Dot
 
 Refresh token hiện lưu hash và rotation có transaction. Trước khi chạy bản này trên database cũ, đọc [migration hash token](docs/auth-and-verification.md); migration dữ liệu không hỗ trợ đảo hash về plaintext. Cấu hình Jwt/Verification/Email được validate trước migrate/seed Development.
 
+## CI trên GitHub Actions
+
+Workflow [Backend CI](.github/workflows/ci.yml) chạy khi push vào `main`, mở/cập nhật Pull Request vào `main`, hoặc chạy thủ công trong tab **Actions**. Runner Ubuntu cài SDK .NET 10, restore dependencies, build solution ở Release và chạy `TransConnect.Tests`; kết quả TRX được lưu trong artifact `backend-test-results` trong 7 ngày.
+
+CI không cần secret, SQL Server hoặc SMTP thật; không chạy Host Development, apply migration hay deploy. Sau khi push workflow lên GitHub, kiểm tra job **Build and test** trong tab Actions. Có thể yêu cầu check này pass trước khi merge bằng branch protection/ruleset của `main`.
+
 ## Tài khoản Admin mặc định
 
 - Email: `admin@hotmail.com`
