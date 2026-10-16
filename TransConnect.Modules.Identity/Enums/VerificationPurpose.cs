@@ -1,4 +1,4 @@
-namespace TransConnect.Modules.Identity.Entities;
+namespace TransConnect.Modules.Identity.Enums;
 
 public enum VerificationPurpose
 {

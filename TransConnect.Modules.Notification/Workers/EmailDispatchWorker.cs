@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TransConnect.Modules.Notification.Entities;
+using TransConnect.Modules.Notification.Enums;
 using TransConnect.Modules.Notification.Options;
 using TransConnect.Modules.Notification.Persistence;
 using TransConnect.Modules.Notification.Providers;
@@ -69,7 +70,7 @@ public class EmailDispatchWorker(
         var now = DateTime.UtcNow;
 
         var pending = await dbContext.EmailMessages
-            .Where(e => e.Status == EmailStatus.Pending
+            .Where(e => e.Status == NotificationStatus.Pending
                         && e.ScheduledAt <= now
                         && (e.NextAttemptAt == null || e.NextAttemptAt <= now))
             .OrderBy(e => e.ScheduledAt)
@@ -85,7 +86,7 @@ public class EmailDispatchWorker(
         // những email này.
         foreach (var message in pending)
         {
-            message.Status = EmailStatus.Sending;
+            message.Status = NotificationStatus.Sending;
             message.ProcessingStartedAt = now;
         }
 
@@ -111,7 +112,7 @@ public class EmailDispatchWorker(
                 new OutgoingEmail(message.ToEmail, message.ToName, message.Subject, message.BodyHtml, message.BodyText),
                 cancellationToken);
 
-            message.Status = EmailStatus.Sent;
+            message.Status = NotificationStatus.Sent;
             message.SentAt = DateTime.UtcNow;
             message.NextAttemptAt = null;
             message.ProcessingStartedAt = null;
@@ -124,7 +125,7 @@ public class EmailDispatchWorker(
 
             if (message.AttemptCount >= _options.MaxAttempts)
             {
-                message.Status = EmailStatus.Failed;
+                message.Status = NotificationStatus.Failed;
                 message.NextAttemptAt = null;
 
                 logger.LogError(ex,
@@ -133,7 +134,7 @@ public class EmailDispatchWorker(
             }
             else
             {
-                message.Status = EmailStatus.Pending;
+                message.Status = NotificationStatus.Pending;
                 message.NextAttemptAt = DateTime.UtcNow.Add(GetBackoff(message.AttemptCount));
 
                 logger.LogWarning(ex,
@@ -156,7 +157,7 @@ public class EmailDispatchWorker(
         var threshold = DateTime.UtcNow.AddMinutes(-_options.StuckAfterMinutes);
 
         var stuck = await dbContext.EmailMessages
-            .Where(e => e.Status == EmailStatus.Sending
+            .Where(e => e.Status == NotificationStatus.Sending
                         && e.ProcessingStartedAt != null
                         && e.ProcessingStartedAt < threshold)
             .ToListAsync(cancellationToken);
@@ -168,7 +169,7 @@ public class EmailDispatchWorker(
 
         foreach (var message in stuck)
         {
-            message.Status = EmailStatus.Pending;
+            message.Status = NotificationStatus.Pending;
             message.ProcessingStartedAt = null;
         }
 

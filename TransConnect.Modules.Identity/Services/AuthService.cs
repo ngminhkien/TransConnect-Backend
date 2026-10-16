@@ -9,6 +9,7 @@ using TransConnect.Common.Options;
 using TransConnect.Modules.Identity.Dto.Requests;
 using TransConnect.Modules.Identity.Dto.Responses;
 using TransConnect.Modules.Identity.Entities;
+using TransConnect.Modules.Identity.Enums;
 using TransConnect.Modules.Identity.Options;
 using TransConnect.Modules.Identity.Persistence;
 
