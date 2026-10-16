@@ -1,10 +1,18 @@
 # TransConnect Backend
 
-**Test từ đầu:** [luồng thủ công đầy đủ + mọi DTO mẫu](docs/full-manual-test-flow.md), [Postman collection](docs/http/TransConnect-full-flow.postman_collection.json), [REST Client](docs/http/full-flow.http). Gồm 125 request theo 8 nhóm Identity → Organization → Member → Driver → Vehicle → Compliance demo → RBAC → phiên/reset. Gửi từng request, nhập OTP/token lời mời tại điểm dừng.
 
-**15/10 — demo hồ sơ nhẹ RAM:** đã tích hợp module Compliance vào .NET, lưu file S3 thật nhưng scan/OCR mô phỏng. Mặc định tắt, chỉ Development; dùng SQL Server/JWT hiện có, không cần Python/Redis/ClamAV. Xem [hướng dẫn từ bước license AIStor đến Swagger](docs/compliance-demo-setup.md). Migration mới chưa apply DB thật; không coi đây là xác minh giấy tờ production.
+## Tài liệu đang sử dụng
 
-Luồng nghiệm thu backend hiện có: [giai đoạn 1 — nền tảng](docs/phase-1-foundation-test-flow.md) (tài khoản theo nhóm, tổ chức/nhân viên/tài xế/xe, quota/audit, OTP/phiên/RBAC, email và SQL Server).
+- [Test hiện hành](docs/current-test.md): một file chứa luồng, DTO, request/response và chỗ xác nhận kết quả.
+- [Câu hỏi và câu trả lời](../TransConnect-Docs/00-project/questions-and-answers.md): nơi chủ dự án trả lời trực tiếp; gồm câu trả lời AS/Q-01–09 đã có.
+- [Công việc và hiện trạng](../TransConnect-Docs/00-project/progress-tracker.md): backlog, phần đã triển khai và bằng chứng nghiệm thu.
+- Quy tắc giữ tại `docs/`; hướng dẫn triển khai auth/email/storage ở `docs/reference/`. Không tạo thêm file test/câu hỏi/kế hoạch theo ngày.
+
+**Test từ đầu:** [luồng thủ công, DTO, 125 HTTP request và response mẫu](docs/current-test.md). Gửi từng request; nhập OTP/token lời mời tại điểm dừng. Tất cả mẫu nằm trong cùng file.
+
+**15/10 — demo hồ sơ nhẹ RAM:** đã tích hợp module Compliance vào .NET, lưu file S3 thật nhưng scan/OCR mô phỏng. Mặc định tắt, chỉ Development; dùng SQL Server/JWT hiện có, không cần Python/Redis/ClamAV. Xem [hướng dẫn từ bước license AIStor đến Swagger](docs/reference/compliance-demo-setup.md). Migration mới chưa apply DB thật; không coi đây là xác minh giấy tờ production.
+
+Luồng nghiệm thu backend hiện có: [giai đoạn 1 — nền tảng](docs/current-test.md#sql-concurrency) (tài khoản theo nhóm, tổ chức/nhân viên/tài xế/xe, quota/audit, OTP/phiên/RBAC, email và SQL Server).
 
 Ngày 13/10 thêm module Operator với DbContext/schema/migrations riêng; Host Development migrate Identity, Notification và Operator. Customer/Operator là hai nhóm công khai; Driver dùng Operator; Admin login với accountGroup InternalAdmin. Xem [quyết định và giới hạn triển khai](../TransConnect-Docs/09-decisions/phase-1-foundation-2026-10-13.md). Migration mới chưa được apply vào DB phát triển.
 
@@ -150,7 +158,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Test-Core.ps1 -Dot
 
 Đường dẫn trên dành cho SDK cài trong user profile; thay bằng executable .NET 10 thực tế của máy. Script build toàn solution, chạy test và khôi phục DOTNET_ROOT sau khi hoàn tất. Ngày 11/10/2026 đã build/test bằng SDK 10.0.302; không chạy SQL Server hoặc SMTP thật.
 
-Refresh token hiện lưu hash và rotation có transaction. Trước khi chạy bản này trên database cũ, đọc [migration hash token](docs/auth-and-verification.md); migration dữ liệu không hỗ trợ đảo hash về plaintext. Cấu hình Jwt/Verification/Email được validate trước migrate/seed Development.
+Refresh token hiện lưu hash và rotation có transaction. Trước khi chạy bản này trên database cũ, đọc [migration hash token](docs/reference/auth-and-verification.md); migration dữ liệu không hỗ trợ đảo hash về plaintext. Cấu hình Jwt/Verification/Email được validate trước migrate/seed Development.
+
+## Cấu trúc thông báo
+
+Module Notification dùng `NotificationMessage` làm base cho vòng đời gửi; `EmailMessage` chứa payload email, còn gửi thật qua `IEmailProvider`. Trạng thái dùng `Enums/NotificationStatus.cs`; enum OTP nằm tại `TransConnect.Modules.Identity/Enums/VerificationPurpose.cs`. Refactor giữ schema `notification.EmailMessages`; xem [thiết kế thông báo](docs/reference/email-and-notification.md). Chưa triển khai kênh SMS/push.
 
 ## CI trên GitHub Actions
 
@@ -175,8 +187,8 @@ CI không cần secret, SQL Server hoặc SMTP thật; không chạy Host Develo
 | [docs/naming-and-folder-conventions.md](docs/naming-and-folder-conventions.md) | Đặt tên, cấu trúc 1 module, khi nào nên/không nên tách module mới |
 | [docs/coding-conventions.md](docs/coding-conventions.md) | Controller/Service/Repository/Exception/DTO, DI, async |
 | [docs/api-conventions.md](docs/api-conventions.md) | Định dạng response, mã lỗi, CORS, tích hợp client |
-| [docs/auth-and-verification.md](docs/auth-and-verification.md) | Đăng nhập, xoay vòng refresh token, OTP, các ràng buộc bảo mật |
-| [docs/email-and-notification.md](docs/email-and-notification.md) | Kiến trúc gửi email, template, cách thêm loại email mới |
+| [docs/auth-and-verification.md](docs/reference/auth-and-verification.md) | Đăng nhập, xoay vòng refresh token, OTP, các ràng buộc bảo mật |
+| [docs/email-and-notification.md](docs/reference/email-and-notification.md) | Kiến trúc gửi email, template, cách thêm loại email mới |
 
 ## Thêm module nghiệp vụ mới
 

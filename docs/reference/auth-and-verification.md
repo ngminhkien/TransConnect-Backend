@@ -6,7 +6,7 @@ Register/login/google/forgot/reset/verify/resend có accountGroup (mặc định
 
 Tất cả truy vấn email/Google/OTP đều theo nhóm; refresh theo AccountId của phiên, không chuyển nhóm. Logout chỉ thu hồi token của current account. Google yêu cầu email đã được Google xác minh và không ghi đè GoogleId khác đã liên kết.
 
-Phân quyền tổ chức nằm ở Operator, đọc account/membership còn hoạt động từ DB mỗi request; Owner/Manager/Dispatcher không phải role RBAC toàn hệ thống. Xem [luồng test giai đoạn 1](phase-1-foundation-test-flow.md). RBAC toàn hệ thống bên dưới vẫn dùng claim JWT; thay đổi claim chỉ có hiệu lực sau token mới.
+Phân quyền tổ chức nằm ở Operator, đọc account/membership còn hoạt động từ DB mỗi request; Owner/Manager/Dispatcher không phải role RBAC toàn hệ thống. Xem [luồng test giai đoạn 1](../current-test.md#sql-concurrency). RBAC toàn hệ thống bên dưới vẫn dùng claim JWT; thay đổi claim chỉ có hiệu lực sau token mới.
 
 Tài liệu này mô tả các luồng đăng nhập, xoay vòng token, xác thực email và đặt lại mật khẩu —
 kèm lý do đằng sau từng quyết định bảo mật, để người sửa sau không vô tình gỡ mất chúng.
@@ -243,13 +243,13 @@ OTP đã chứng minh quyền sở hữu email nên việc này an toàn.
 - **Đăng nhập Google chưa cấu hình** — endpoint đang đóng an toàn nên không có rủi ro, nhưng
   chức năng chưa dùng được. Làm cùng lúc với frontend, xem mục riêng ở trên.
 - Đăng ký/reset đã thống nhất tối thiểu 6, tối đa 100 ký tự qua `PasswordRules`, theo yêu cầu chủ dự án ngày 12/10; không thêm quy tắc độ phức tạp.
-- Chưa có thu hồi access token tức thì, khóa đăng nhập tự động hoặc tenant. Xem [hiện trạng Docs](../../TransConnect-Docs/00-project/backend-status.md).
+- Chưa có thu hồi access token tức thì, khóa đăng nhập tự động hoặc tenant. Xem [hiện trạng Docs](../../../TransConnect-Docs/00-project/progress-tracker.md#current-status).
 
 ## Kiểm thử core
 
-`AuthLifecycleTests`, `RefreshConcurrencyTests`, `VerificationAndEmailTests`, `OptionsValidationTests`, `MigrationTests` bổ sung cho HTTP contract hiện có. Test email dừng tại lưu hàng đợi, không gửi SMTP và không chạy worker. Xem [ma trận truy vết](../../TransConnect-Docs/08-testing/traceability.md).
+`AuthLifecycleTests`, `RefreshConcurrencyTests`, `VerificationAndEmailTests`, `OptionsValidationTests`, `MigrationTests` bổ sung cho HTTP contract hiện có. Test email dừng tại lưu hàng đợi, không gửi SMTP và không chạy worker. Xem [ma trận truy vết](../../../TransConnect-Docs/00-project/progress-tracker.md#test-evidence).
 
-`IdentityRegressionTests` kiểm tra OTP đồng thời, reset rollback, mật khẩu 6 ký tự, RBAC xóa/tạo lại, ghi trùng đồng thời và seeder. [Luồng test tổng thể](phase-1-foundation-test-flow.md) có request mẫu, thứ tự chạy và kỳ vọng.
+`IdentityRegressionTests` kiểm tra OTP đồng thời, reset rollback, mật khẩu 6 ký tự, RBAC xóa/tạo lại, ghi trùng đồng thời và seeder. [Luồng test tổng thể](../current-test.md#sql-concurrency) có request mẫu, thứ tự chạy và kỳ vọng.
 
 ## Đồng thời OTP và migration RBAC — 12/10/2026
 
