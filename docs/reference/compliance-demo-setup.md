@@ -1,6 +1,6 @@
 # Demo hồ sơ nhẹ RAM — AIStor thật, scan/OCR mô phỏng
 
-Luồng test xuyên suốt từ register/login đến phần demo: [full-manual-test-flow](full-manual-test-flow.md). File đó liên kết bộ Postman/REST Client có đủ body DTO và response mẫu; chọn nhóm 06 để test Compliance sau khi xong setup bên dưới.
+Luồng test xuyên suốt và mẫu request/response nằm trong [file kiểm thử hiện hành](../current-test.md); chọn nhóm 06 để test Compliance sau khi xong setup bên dưới.
 
 Ngày 15/10/2026, chủ dự án chọn demo trước và yêu cầu tích hợp vào backend .NET. Dùng file giả lập. Không cần Python, Redis, ClamAV hoặc Tesseract để chạy luồng này. Host và SQL Server hiện có vẫn cần hoạt động. Chưa có giao diện mới; thao tác qua Swagger/API.
 
@@ -119,46 +119,9 @@ Khởi động sau khi kiểm tra `ConnectionStrings:Default` trỏ đúng datab
 
 Host Development sẽ migrate các module hiện có và thêm `compliance.DemoDocuments` khi demo được bật. Migration mới `20261015102849_InitComplianceDemo` là additive, không sửa bảng Identity/Operator. Phiên agent chỉ sinh migration và SQL test; **chưa apply vào DB thật**. Không dùng PostgreSQL trong output Docker thay cho SQL Server của solution.
 
-## 6. Luồng test qua Swagger
+## Kiểm tra và xử lý sự cố
 
-Mở `http://localhost:5267/swagger`. Đăng nhập qua `/auth/login` bằng tài khoản đang hoạt động, chọn đúng `accountGroup`, rồi nhập `Bearer <accessToken>` vào Authorize. Tạo tài khoản thử qua auth hiện có nếu cần.
-
-| API | Thao tác | Kết quả mong đợi |
-|---|---|---|
-| POST `/compliance/demo/documents` | Multipart `File` PNG/JPEG/PDF giả lập <= 8 MiB, `SyntheticDataConfirmed=true` | `PendingSimulation`, `NOT_SCANNED`, lưu S3 thật |
-| GET `/compliance/demo/documents` | Danh sách của tài khoản hiện tại | Tối đa 100 bản mới nhất |
-| GET `/compliance/demo/documents/{id}` | Xem trạng thái | Không lộ object key/bucket |
-| POST `.../{id}/simulate` | JSON bên dưới | Trạng thái demo, không chạy scanner/OCR |
-| POST `.../{id}/review` | `{"approved":true}` hoặc `false` | `DemoApproved`/`DemoRejected`, vẫn NOT_VERIFIED |
-| GET `.../{id}/download` | Sau Success và chưa bị từ chối | Attachment `.bin`, no-store, `X-Document-Mode: DEMO-UNSCANNED` |
-| DELETE `.../{id}` | Xóa dữ liệu thử | Xóa object và soft-delete metadata |
-
-Ví dụ mô phỏng thành công:
-
-```json
-{ "scenario": "Success" }
-```
-
-Tạo một document mới cho mỗi kịch bản khác:
-
-| Scenario | Status | ScanResult | OCR / download |
-|---|---|---|---|
-| Success | DemoNeedsReview | SIMULATED_CLEAN | OCR text cố định, download demo được phép |
-| Infected | DemoBlocked | SIMULATED_INFECTED | Không OCR, chặn download |
-| ScannerUnavailable | DemoFailed | SIMULATED_UNAVAILABLE | Không OCR, chặn download |
-| OcrFailed | DemoFailed | SIMULATED_CLEAN | Không có OCR text, chặn download |
-
-Tất cả response metadata có `isDemo=true`, `processingMode=SIMULATED`, `verification=NOT_VERIFIED`, `notice` giải thích. Không có bước VERIFIED; “SIMULATED_CLEAN” chỉ là nhánh fixture, không phải kết quả quét. API review chỉ mô phỏng quyết định của chủ file, không ghi vào hồ sơ pháp lý thực.
-
-Download là ngoại lệ binary của envelope API; lỗi vẫn theo envelope chung. File chưa được quét được trả dạng attachment/octet-stream `.bin`, không preview inline. Dùng dữ liệu giả lập đã biết. Magic bytes là kiểm tra đầu file sơ bộ, không xác minh cấu trúc/an toàn file. OCR mẫu không phụ thuộc nội dung upload.
-
-## 7. Kiểm thử, sự cố và rollback
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Test-Core.ps1 -DotnetPath C:/Users/PC/.dotnet/dotnet.exe -NoRestore
-```
-
-Tests dùng SQLite và fake storage, kiểm chứng ownership, trạng thái demo, chặn môi trường, lỗi storage, giới hạn file và SQL migration/snapshot. Không thay thế nghiệm thu AIStor/SQL Server thật. Kết quả cập nhật ở [traceability](../../TransConnect-Docs/08-testing/traceability.md).
+Luồng test/API/DTO chỉ duy trì ở [test hiện hành](../current-test.md).
 
 - 404 route: kiểm tra Development và `ComplianceDemo:Enabled`. 404 document: sai tài khoản/ID hoặc đã xóa.
 - 503 storage: kiểm tra AIStor, bucket, endpoint 9000 và policy access key; không tự fallback sang “thành công” hay storage giả.
@@ -167,10 +130,12 @@ Tests dùng SQLite và fake storage, kiểm chứng ownership, trạng thái dem
 - Cùng file bị thao tác đồng thời: revision conflict trả 409, tải lại trạng thái. File bị thay trong S3: download đối chiếu SHA-256 và size rồi từ chối nếu lệch.
 - Rollback tính năng: đặt `Enabled=false`, restart Host, dừng Compose. Không tự rollback migration DropTable vì có thể mất metadata. Xóa dữ liệu thử qua API trước khi tắt nếu muốn dọn.
 
-## 8. R2 và scan/OCR thật ở giai đoạn sau
+## Tham khảo adapter R2
+
+
 
 Adapter dùng AWS SDK S3 4.0.104.4. Để thử R2 sau này: tạo bucket demo private, cấp Object Read & Write đúng bucket; đổi Endpoint HTTPS và Region `auto`, giữ demo mode Development. Đổi endpoint không chuyển file cũ: dùng DB/bucket thử riêng hoặc di chuyển có đối soát. Chưa kiểm chứng live R2 trong lượt này. R2 không tự quét ClamAV.
 
-Mốc nâng cấp: scanner/OCR adapter thật, queue/retry và reconciliation, lưu kết quả scan/version/signature time, quyền tổ chức/reviewer, model hồ sơ/version, mã hóa/retention/audit. Không bật demo trên production hoặc tự coi DemoApproved là Approved của hồ sơ thật. Tài liệu Python tham khảo kiến trúc; không thêm Redis/PostgreSQL chỉ vì prototype dùng chúng.
+Công việc nâng cấp tập trung trong [tracker](../../../TransConnect-Docs/00-project/progress-tracker.md).
 
 Nguồn: [AIStor container](https://docs.min.io/aistor/installation/container/install/), [AWS SDK S3 config](https://docs.aws.amazon.com/sdkfornet/v4/apidocs/items/S3/TS3Config.html), [R2 credentials](https://developers.cloudflare.com/r2/api/tokens/).

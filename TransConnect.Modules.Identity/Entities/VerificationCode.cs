@@ -1,4 +1,5 @@
 using TransConnect.Base.Entities;
+using TransConnect.Modules.Identity.Enums;
 
 namespace TransConnect.Modules.Identity.Entities;
 

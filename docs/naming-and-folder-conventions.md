@@ -7,6 +7,7 @@ Mỗi module (`TransConnect.Modules.<TenModule>`) tổ chức nội bộ theo c�
 ```
 TransConnect.Modules.<TenModule>/
 ├── Entities/                 # entity, kế thừa BaseEntity nếu cần audit/soft-delete
+├── Enums/                    # enum của module, mỗi enum một file riêng
 ├── Persistence/
 │   ├── <TenModule>DbContext.cs
 │   ├── Configurations/       # IEntityTypeConfiguration<T>, 1 file/entity
@@ -49,6 +50,7 @@ chia 3 thư mục thì mỗi lần tìm file phải mở thêm một lớp — l
 - **Role/Permission code**: PascalCase cho tên Role (`Admin`, `User`, không dùng `ADMIN_COMPANY` kiểu SCREAMING_SNAKE); Permission code dạng `resource.action` chữ thường (`roles.manage`, `booking.create`).
 - **Async method**: luôn hậu tố `Async` (`GetByIdAsync`, `RegisterAsync`).
 - **File = 1 class/interface/record public**, tên file trùng tên type.
+- **Enum**: đặt trong `Enums/` của module sở hữu, namespace theo thư mục; không để trong `Entities/` hoặc chung file với entity. Gán giá trị số tường minh cho enum lưu trong DB và giữ nguyên giá trị khi đổi tên/di chuyển type.
 
 ## Nguyên tắc chia module — không chia quá nhỏ
 

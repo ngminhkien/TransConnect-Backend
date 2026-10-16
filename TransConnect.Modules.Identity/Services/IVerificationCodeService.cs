@@ -1,4 +1,4 @@
-using TransConnect.Modules.Identity.Entities;
+using TransConnect.Modules.Identity.Enums;
 
 namespace TransConnect.Modules.Identity.Services;
 

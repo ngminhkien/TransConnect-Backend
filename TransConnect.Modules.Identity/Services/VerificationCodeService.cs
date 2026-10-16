@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TransConnect.Base.Exceptions;
 using TransConnect.Modules.Identity.Entities;
+using TransConnect.Modules.Identity.Enums;
 using TransConnect.Modules.Identity.Options;
 using TransConnect.Modules.Identity.Persistence;
 

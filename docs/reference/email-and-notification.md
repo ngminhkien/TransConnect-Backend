@@ -26,7 +26,7 @@ AuthService  ──gọi──►  IEmailQueue (interface)  ◄──implement�
 ```
 
 Contract nằm ở `TransConnect.Common/Notifications/` nên module nghiệp vụ **không cần reference
-module Notification** — đúng quy tắc trong [base-libraries-guidelines.md](base-libraries-guidelines.md).
+module Notification** — đúng quy tắc trong [base-libraries-guidelines.md](../base-libraries-guidelines.md).
 
 ### Vì sao vòng qua hàng đợi thay vì gọi thẳng SMTP
 
@@ -41,6 +41,12 @@ Riêng với **email đặt lại mật khẩu**, mất email đồng nghĩa ng�
 — đây là lý do quan trọng nhất để giữ cơ chế retry.
 
 ## Vòng đời một email
+
+`EmailMessage` kế thừa `NotificationMessage` (abstract) trong `Entities/`. Lớp cha chứa `TemplateCode`, `Status`, lịch gửi, số lần thử, thời điểm gửi/xử lý và lỗi; lớp con giữ `ToEmail`, `ToName`, `Subject`, `BodyHtml`, `BodyText`. Enum dùng chung cho vòng đời gửi là `Enums/NotificationStatus.cs`, giữ giá trị DB `Pending=0`, `Sending=1`, `Sent=2`, `Failed=3`.
+
+Kế thừa này chia sẻ dữ liệu vòng đời, còn việc gửi phụ thuộc abstraction theo kênh (`IEmailProvider` cho email). Khi thêm SMS/push, tạo entity con với payload riêng và contract/provider/worker phù hợp; không thêm trường email vào lớp cha hoặc buộc provider mới implement `IEmailProvider`. Hiện chỉ email đã được triển khai.
+
+`NotificationMessage` không được đăng ký như entity EF; `EmailMessageConfiguration` đặt `HasBaseType((Type?)null)` để giữ mapping bảng độc lập `notification.EmailMessages`. Refactor không yêu cầu đổi schema, thêm discriminator hay apply migration. Khi thêm kênh có bảng mới, cần cấu hình mapping riêng và tạo migration tương ứng.
 
 `EmailMessage.Status` đi theo đúng đường sau:
 

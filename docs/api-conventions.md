@@ -1,6 +1,6 @@
 # Quy ước API & tích hợp client
 
-Giai đoạn 1 bổ sung /organizations, /drivers và /organizations/{id}/vehicles, cùng envelope tiếng Việt và lỗi nghiệp vụ 403. Auth request thêm accountGroup; accountId là alias userId trong response. ID tổ chức trên URL luôn được service đối chiếu quyền DB, không coi là bằng chứng truy cập. Ví dụ đầy đủ: [phase-1-foundation-test-flow](phase-1-foundation-test-flow.md).
+Giai đoạn 1 bổ sung /organizations, /drivers và /organizations/{id}/vehicles, cùng envelope tiếng Việt và lỗi nghiệp vụ 403. Auth request thêm accountGroup; accountId là alias userId trong response. ID tổ chức trên URL luôn được service đối chiếu quyền DB, không coi là bằng chứng truy cập. Ví dụ đầy đủ: [kiểm thử hiện hành](current-test.md#sql-concurrency).
 
 Contract dùng chung: [TransConnect-Docs/05-api/conventions.md](../../TransConnect-Docs/05-api/conventions.md). Quyết định của chủ dự án: [API-BASELINE-001](../../TransConnect-Docs/09-decisions/api-baseline.md).
 

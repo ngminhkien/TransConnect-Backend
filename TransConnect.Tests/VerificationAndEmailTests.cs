@@ -5,10 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TransConnect.Base.Exceptions;
 using TransConnect.Modules.Identity.Entities;
+using TransConnect.Modules.Identity.Enums;
 using TransConnect.Modules.Identity.Options;
 using TransConnect.Modules.Identity.Persistence;
 using TransConnect.Modules.Identity.Services;
-using TransConnect.Modules.Notification.Entities;
+using TransConnect.Modules.Notification.Enums;
 using TransConnect.Modules.Notification.Persistence;
 using Xunit;
 
@@ -82,7 +83,7 @@ public class VerificationAndEmailTests
         Assert.Single(await db.UserRoles.ToListAsync());
         Assert.Single(await db.VerificationCodes.ToListAsync());
         var mail = await mailDb.EmailMessages.SingleAsync();
-        Assert.Equal(EmailStatus.Pending, mail.Status);
+        Assert.Equal(NotificationStatus.Pending, mail.Status);
         Assert.DoesNotContain("<script>", mail.BodyHtml);
         Assert.Contains("&lt;script&gt;", mail.BodyHtml);
         Assert.Contains("<script>", mail.BodyText);

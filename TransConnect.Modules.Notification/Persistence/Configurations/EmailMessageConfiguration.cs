@@ -8,6 +8,9 @@ public class EmailMessageConfiguration : IEntityTypeConfiguration<EmailMessage>
 {
     public void Configure(EntityTypeBuilder<EmailMessage> builder)
     {
+        // NotificationMessage chỉ dùng lại code C#; mỗi kênh map bảng độc lập.
+        // Không đưa base vào EF hierarchy để tránh thêm discriminator/bảng chung.
+        builder.HasBaseType((Type?)null);
         builder.ToTable("EmailMessages");
 
         builder.Property(e => e.ToEmail).IsRequired().HasMaxLength(256);

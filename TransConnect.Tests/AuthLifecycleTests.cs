@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TransConnect.Base.Exceptions;
 using TransConnect.Modules.Identity.Dto.Requests;
 using TransConnect.Modules.Identity.Entities;
+using TransConnect.Modules.Identity.Enums;
 using TransConnect.Modules.Identity.Persistence;
 using TransConnect.Modules.Identity.Services;
 using Xunit;

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TransConnect.Common.Notifications;
 using TransConnect.Modules.Notification.Entities;
+using TransConnect.Modules.Notification.Enums;
 using TransConnect.Modules.Notification.Persistence;
 using TransConnect.Modules.Notification.Templates;
 
@@ -25,7 +26,7 @@ public class EmailQueue(
             BodyHtml = rendered.BodyHtml,
             BodyText = rendered.BodyText,
             TemplateCode = request.TemplateCode,
-            Status = EmailStatus.Pending,
+            Status = NotificationStatus.Pending,
             ScheduledAt = request.ScheduledAt ?? DateTime.UtcNow
         };
 
