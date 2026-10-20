@@ -12,6 +12,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 
         builder.Property(rt => rt.Token).IsRequired().HasMaxLength(500);
         builder.Property(rt => rt.JwtId).IsRequired().HasMaxLength(100);
+        builder.Property(rt => rt.RevokedReason).HasMaxLength(100);
 
         builder.HasIndex(rt => rt.Token).IsUnique();
 

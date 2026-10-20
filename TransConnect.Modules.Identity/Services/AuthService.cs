@@ -31,6 +31,50 @@ public class AuthService(
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
     private readonly GoogleOptions _googleOptions = googleOptions.Value;
 
+    public async Task<CurrentUserResponse> UpdateProfileAsync(UpdateAccountProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        Validator(request);
+        var profile = await GetCurrentUserAsync(cancellationToken);
+        if (profile.AccountGroup is not (AccountGroups.Customer or AccountGroups.Operator))
+            throw new ForbiddenAppException();
+        await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (await IdentityUserLock.AcquireAsync(dbContext, profile.UserId, cancellationToken) != 1)
+            throw new UnauthorizedAppException("Tài khoản không còn khả dụng.");
+        var user = await dbContext.Users.SingleAsync(x => x.Id == profile.UserId, cancellationToken);
+        user.FullName = request.FullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return await GetCurrentUserAsync(cancellationToken);
+    }
+
+    public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        Validator(request);
+        var profile = await GetCurrentUserAsync(cancellationToken);
+        await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (await IdentityUserLock.AcquireAsync(dbContext, profile.UserId, cancellationToken) != 1)
+            throw new UnauthorizedAppException("Tài khoản không còn khả dụng.");
+        var user = await dbContext.Users.SingleAsync(x => x.Id == profile.UserId, cancellationToken);
+        await dbContext.Entry(user).ReloadAsync(cancellationToken);
+        if (user.PasswordHash is null)
+            throw new ConflictException("Tài khoản chưa có mật khẩu. Luồng đặt mật khẩu lần đầu chưa được hỗ trợ.");
+        if (!passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new ValidationAppException(new Dictionary<string, string[]> { ["currentPassword"] = ["Mật khẩu hiện tại không đúng."] });
+        user.PasswordHash = passwordHasher.Hash(request.NewPassword);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await RevokeAllTokensAsync(user.Id, "PasswordChanged", cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+    }
+
+    private static void Validator(object request)
+    {
+        var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+        if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(request,
+            new System.ComponentModel.DataAnnotations.ValidationContext(request), results, true))
+            throw new ValidationAppException("Thông tin tài khoản không hợp lệ.");
+    }
+
     public async Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken = default)
     {
         if (!currentUser.IsAuthenticated || currentUser.UserId is not { } userId)
@@ -94,13 +138,21 @@ public class AuthService(
     {
         var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email.Trim().ToLower() && u.AccountGroup == request.AccountGroup, cancellationToken);
 
-        if (user is null || !user.IsActive || user.PasswordHash is null
+        if (user is null) throw new UnauthorizedAppException("Email hoặc mật khẩu không đúng.");
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        if (await IdentityUserLock.AcquireAsync(dbContext, user.Id, cancellationToken) != 1)
+            throw new UnauthorizedAppException("Email hoặc mật khẩu không đúng.");
+        // Verify the current hash under the same lock used by reset/change/status.
+        await dbContext.Entry(user).ReloadAsync(cancellationToken);
+        if (!user.IsActive || user.PasswordHash is null
             || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             throw new UnauthorizedAppException("Email hoặc mật khẩu không đúng.");
         }
 
-        return await IssueTokensAsync(user, cancellationToken);
+        var response = await IssueTokensAsync(user, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return response;
     }
 
     public async Task<AuthResponse> GoogleLoginAsync(GoogleLoginRequest request, CancellationToken cancellationToken = default)
@@ -191,7 +243,8 @@ public class AuthService(
         var storedToken = await dbContext.RefreshTokens.AsNoTracking()
             .FirstOrDefaultAsync(rt => rt.Token == tokenHash, cancellationToken);
 
-        if (storedToken is null || storedToken.IsRevoked || storedToken.ExpiresAt <= DateTime.UtcNow)
+        // Used tokens must reach the replay check even after rotation revokes them.
+        if (storedToken is null || (storedToken.IsRevoked && !storedToken.IsUsed) || storedToken.ExpiresAt <= DateTime.UtcNow)
         {
             throw new UnauthorizedAppException("Refresh token không hợp lệ hoặc đã hết hạn.");
         }
@@ -206,6 +259,9 @@ public class AuthService(
             .Where(rt => rt.Id == storedToken.Id && !rt.IsUsed && !rt.IsRevoked && rt.ExpiresAt > now)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(rt => rt.IsUsed, true)
+                .SetProperty(rt => rt.IsRevoked, true)
+                .SetProperty(rt => rt.RevokedAt, now)
+                .SetProperty(rt => rt.RevokedReason, "Replaced")
                 .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
 
         if (claimed == 0)
@@ -215,7 +271,7 @@ public class AuthService(
             if (wasUsed)
             {
                 logger.LogWarning("Phát hiện refresh token bị dùng lại cho UserId {UserId}.", storedToken.UserId);
-                await RevokeAllTokensAsync(storedToken.UserId, cancellationToken);
+                await RevokeAllTokensAsync(storedToken.UserId, "Replay", cancellationToken);
             }
             await transaction.CommitAsync(cancellationToken);
             throw new UnauthorizedAppException("Phát hiện refresh token bị dùng lại, vui lòng đăng nhập lại.");
@@ -238,6 +294,8 @@ public class AuthService(
         var now = DateTime.UtcNow;
         await dbContext.RefreshTokens.Where(rt => rt.Token == tokenHash && rt.UserId == accountId && !rt.IsRevoked)
             .ExecuteUpdateAsync(setters => setters.SetProperty(rt => rt.IsRevoked, true)
+                .SetProperty(rt => rt.RevokedAt, now)
+                .SetProperty(rt => rt.RevokedReason, "Logout")
                 .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
     }
 
@@ -256,7 +314,7 @@ public class AuthService(
 
         try
         {
-            var code = await verificationCodeService.IssueAsync(
+            var code = await verificationCodeService.IssueForDeliveryAsync(
                 user.Id, VerificationPurpose.PasswordReset, cancellationToken);
 
             await SendCodeEmailAsync(user, code, EmailTemplateCodes.PasswordReset, cancellationToken);
@@ -285,7 +343,7 @@ public class AuthService(
                 user.PasswordHash = passwordHasher.Hash(request.NewPassword);
                 user.EmailVerifiedAt ??= DateTime.UtcNow;
                 await dbContext.SaveChangesAsync(ct);
-                await RevokeAllTokensAsync(user.Id, ct);
+                await RevokeAllTokensAsync(user.Id, "PasswordChanged", ct);
             }, cancellationToken);
 
         logger.LogInformation("UserId {UserId} đã đặt lại mật khẩu, toàn bộ phiên cũ bị thu hồi.", user.Id);
@@ -327,7 +385,7 @@ public class AuthService(
 
         try
         {
-            var code = await verificationCodeService.IssueAsync(
+            var code = await verificationCodeService.IssueForDeliveryAsync(
                 user.Id, VerificationPurpose.EmailVerification, cancellationToken);
 
             await SendCodeEmailAsync(user, code, EmailTemplateCodes.EmailVerification, cancellationToken);
@@ -342,7 +400,7 @@ public class AuthService(
     {
         try
         {
-            var code = await verificationCodeService.IssueAsync(
+            var code = await verificationCodeService.IssueForDeliveryAsync(
                 user.Id, VerificationPurpose.EmailVerification, cancellationToken);
 
             await SendCodeEmailAsync(user, code, EmailTemplateCodes.EmailVerification, cancellationToken);
@@ -358,7 +416,7 @@ public class AuthService(
 
     private Task SendCodeEmailAsync(
         User user,
-        string code,
+        IssuedVerificationCode code,
         string templateCode,
         CancellationToken cancellationToken) =>
         emailQueue.EnqueueAsync(new EmailRequest
@@ -366,10 +424,11 @@ public class AuthService(
             ToEmail = user.Email,
             ToName = user.FullName,
             TemplateCode = templateCode,
+            SourceType = EmailSourceTypes.VerificationCode, SourceId = code.Id, DeliverBefore = code.ExpiresAt,
             Placeholders = new Dictionary<string, string>
             {
                 ["FullName"] = user.FullName,
-                ["OtpCode"] = code,
+                ["OtpCode"] = code.Code,
                 ["ExpiresMinutes"] = verificationCodeService.ExpiryMinutes.ToString()
             }
         }, cancellationToken);
@@ -384,17 +443,24 @@ public class AuthService(
         }
     }
 
-    private async Task RevokeAllTokensAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task RevokeAllTokensAsync(Guid userId, string reason, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         await dbContext.RefreshTokens
             .Where(rt => rt.UserId == userId && !rt.IsRevoked)
             .ExecuteUpdateAsync(setters => setters.SetProperty(rt => rt.IsRevoked, true)
+                .SetProperty(rt => rt.RevokedAt, now)
+                .SetProperty(rt => rt.RevokedReason, reason)
                 .SetProperty(rt => rt.UpdatedAt, now), cancellationToken);
     }
 
     private async Task<AuthResponse> IssueTokensAsync(User user, CancellationToken cancellationToken)
     {
+        await using var tokenTransaction = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
+        if (await IdentityUserLock.AcquireAsync(dbContext, user.Id, cancellationToken) != 1)
+            throw new UnauthorizedAppException("Tài khoản không còn khả dụng.");
+        user = await dbContext.Users.AsNoTracking().SingleAsync(x => x.Id == user.Id && x.IsActive, cancellationToken);
         var roles = await permissionService.GetRoleNamesAsync(user.Id, cancellationToken);
         var permissions = await permissionService.GetPermissionCodesAsync(user.Id, cancellationToken);
 
@@ -409,6 +475,7 @@ public class AuthService(
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenDays)
         });
         await dbContext.SaveChangesAsync(cancellationToken);
+        if (tokenTransaction is not null) await tokenTransaction.CommitAsync(cancellationToken);
 
         return new AuthResponse
         {

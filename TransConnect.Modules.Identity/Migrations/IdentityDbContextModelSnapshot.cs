@@ -56,6 +56,48 @@ namespace TransConnect.Modules.Identity.Migrations
                     b.ToTable("Permissions", "identity");
                 });
 
+            modelBuilder.Entity("TransConnect.Modules.Identity.Entities.RbacAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid?>("ActorAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChangesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RequestId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SubjectId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("RbacAuditLogs", "identity");
+                });
+
             modelBuilder.Entity("TransConnect.Modules.Identity.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -79,6 +121,13 @@ namespace TransConnect.Modules.Identity.Migrations
 
                     b.Property<string>("JwtId")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevokedReason")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -211,7 +260,10 @@ namespace TransConnect.Modules.Identity.Migrations
                         .IsUnique()
                         .HasFilter("[GoogleId] IS NOT NULL");
 
-                    b.ToTable("Users", "identity");
+                    b.ToTable("Users", "identity", t =>
+                        {
+                            t.HasCheckConstraint("CK_Users_AccountGroup", "[AccountGroup] IN ('Customer', 'Operator', 'InternalAdmin')");
+                        });
                 });
 
             modelBuilder.Entity("TransConnect.Modules.Identity.Entities.UserRole", b =>

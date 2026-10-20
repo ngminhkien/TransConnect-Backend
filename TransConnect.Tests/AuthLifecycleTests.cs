@@ -50,7 +50,16 @@ public class AuthLifecycleTests
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = digest }));
         var second = await auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = first.RefreshToken });
         Assert.NotEqual(first.RefreshToken, second.RefreshToken);
+        var rotated = await db.RefreshTokens.AsNoTracking().SingleAsync(t => t.Token == digest);
+        Assert.True(rotated.IsRevoked);
+        Assert.Equal("Replaced", rotated.RevokedReason);
+        Assert.NotNull(rotated.RevokedAt);
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = first.RefreshToken }));
+        var tokens = await db.RefreshTokens.AsNoTracking().ToListAsync();
+        Assert.Equal(rotated.RevokedAt, tokens.Single(t => t.Token == digest).RevokedAt);
+        Assert.Equal("Replaced", tokens.Single(t => t.Token == digest).RevokedReason);
+        Assert.Equal("Replay", tokens.Single(t => t.Token != digest).RevokedReason);
+        Assert.All(tokens, t => Assert.NotNull(t.RevokedAt));
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = second.RefreshToken }));
     }
 
@@ -68,9 +77,14 @@ public class AuthLifecycleTests
         var session = await auth.LoginAsync(new LoginRequest { Email = user.Email, Password = "password123" });
         client.DefaultRequestHeaders.Authorization = new("Bearer", session.AccessToken);
         using var logout = await client.PostAsJsonAsync("/auth/logout", new { refreshToken = session.RefreshToken });
+        var revokedAt = (await db.RefreshTokens.AsNoTracking().SingleAsync()).RevokedAt;
         using var repeated = await client.PostAsJsonAsync("/auth/logout", new { refreshToken = session.RefreshToken });
         Assert.True(logout.IsSuccessStatusCode);
         Assert.True(repeated.IsSuccessStatusCode);
+        var revoked = await db.RefreshTokens.AsNoTracking().SingleAsync();
+        Assert.NotNull(revokedAt);
+        Assert.Equal(revokedAt, revoked.RevokedAt);
+        Assert.Equal("Logout", revoked.RevokedReason);
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = session.RefreshToken }));
     }
 
@@ -88,6 +102,9 @@ public class AuthLifecycleTests
         var codes = scope.ServiceProvider.GetRequiredService<IVerificationCodeService>();
         var code = await codes.IssueAsync(user.Id, VerificationPurpose.PasswordReset);
         await auth.ResetPasswordAsync(new ResetPasswordRequest { Email = user.Email, Code = code, NewPassword = "new-password123" });
+        var resetToken = await db.RefreshTokens.AsNoTracking().SingleAsync();
+        Assert.Equal("PasswordChanged", resetToken.RevokedReason);
+        Assert.NotNull(resetToken.RevokedAt);
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.LoginAsync(new LoginRequest { Email = user.Email, Password = "password123" }));
         Assert.True((await auth.LoginAsync(new LoginRequest { Email = user.Email, Password = "new-password123" })).EmailVerified);
         await Assert.ThrowsAsync<UnauthorizedAppException>(() => auth.RefreshAsync(new RefreshTokenRequest { RefreshToken = session.RefreshToken }));

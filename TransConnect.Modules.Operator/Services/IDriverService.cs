@@ -5,8 +5,11 @@ namespace TransConnect.Modules.Operator.Services;
 
 public interface IDriverService
 {
+    Task<DriverResponse> ResubmitAsync(SubmitDriverRequest request, CancellationToken ct);
     Task<DriverResponse> SubmitAsync(SubmitDriverRequest request, CancellationToken ct);
     Task<DriverResponse> MeAsync(CancellationToken ct);
+    Task<DriverResponse> UpdateProfileAsync(UpdateDriverProfileRequest request, CancellationToken ct);
+    Task<EngagementProfileResponse> EngagementProfileAsync(Guid organizationId, Guid engagementId, CancellationToken ct);
     Task<IReadOnlyList<DriverResponse>> PendingAsync(CancellationToken ct);
     Task<DriverResponse> ReviewAsync(Guid id, ReviewRequest request, CancellationToken ct);
     Task<InvitationResponse> InviteAsync(Guid organizationId, Guid driverId, CancellationToken ct);

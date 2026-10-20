@@ -7,6 +7,8 @@ public class Driver : BaseEntity
 {
     public Guid AccountId { get; set; }
     public string FullName { get; set; } = string.Empty;
+    public string? ContactPhone { get; set; }
+    public string? ContactAddress { get; set; }
     public string ReviewStatus { get; set; } = "Pending";
     public string? ReviewNote { get; set; }
     public Guid? ReviewedBy { get; set; }

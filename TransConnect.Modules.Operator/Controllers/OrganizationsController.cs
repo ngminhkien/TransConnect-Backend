@@ -13,7 +13,6 @@ namespace TransConnect.Modules.Operator.Controllers;
 public sealed class OrganizationsController(IOrganizationService service) : ControllerBase
 {
     [HttpPost]
-    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<OrganizationResponse>>> Submit(SubmitOrganizationRequest request, CancellationToken ct)
     {
         var result = await service.SubmitAsync(request, ct);
@@ -27,12 +26,20 @@ public sealed class OrganizationsController(IOrganizationService service) : Cont
         return Ok(ApiResponse<IReadOnlyList<OrganizationResponse>>.Success(result));
     }
 
+    [HttpPost("{id:guid}/resubmit")]
+    public async Task<ActionResult<ApiResponse<OrganizationResponse>>> Resubmit(Guid id, SubmitOrganizationRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<OrganizationResponse>.Success(await service.ResubmitAsync(id, request, ct)));
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<OrganizationResponse>>> Get(Guid id, CancellationToken ct)
     {
         var result = await service.GetAsync(id, ct);
         return Ok(ApiResponse<OrganizationResponse>.Success(result));
     }
+
+    [HttpPut("{id:guid}/profile")]
+    public async Task<ActionResult<ApiResponse<OrganizationResponse>>> UpdateProfile(Guid id, UpdateOrganizationProfileRequest request, CancellationToken ct)
+        => Ok(ApiResponse<OrganizationResponse>.Success(await service.UpdateProfileAsync(id, request, ct)));
 
     [HttpPost("{id:guid}/review")]
     public async Task<ActionResult<ApiResponse<OrganizationResponse>>> Review(Guid id, ReviewRequest request, CancellationToken ct)

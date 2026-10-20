@@ -33,10 +33,14 @@ public sealed class VehiclesController(IVehicleService service) : ControllerBase
         return Ok(ApiResponse<object>.Success(new { }));
     }
 
+    [HttpPut("{linkId:guid}/profile")]
+    public async Task<ActionResult<ApiResponse<VehicleResponse>>> UpdateProfile(Guid organizationId, Guid linkId, UpdateVehicleProfileRequest request, CancellationToken ct)
+        => Ok(ApiResponse<VehicleResponse>.Success(await service.UpdateProfileAsync(organizationId, linkId, request, ct)));
+
     [HttpDelete("{linkId:guid}")]
-    public async Task<ActionResult<ApiResponse<object>>> End(Guid organizationId, Guid linkId, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<object>>> End(Guid organizationId, Guid linkId, EndVehicleRequest request, CancellationToken ct)
     {
-        await service.EndAsync(organizationId, linkId, ct);
+        await service.EndAsync(organizationId, linkId, request, ct);
         return Ok(ApiResponse<object>.Success(new { }));
     }
 

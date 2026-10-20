@@ -9,6 +9,7 @@ public sealed class OrganizationVehicleConfiguration : IEntityTypeConfiguration<
     public void Configure(EntityTypeBuilder<OrganizationVehicle> builder)
     {
         builder.ToTable("OrganizationVehicles");
+        builder.Property(x => x.EndReason).HasMaxLength(1000);
         builder.Property(x => x.VerificationReference).HasMaxLength(1000).IsRequired();
         builder.HasIndex(x => x.VehicleId).IsUnique().HasFilter("[EndedAt] IS NULL");
         builder.HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);

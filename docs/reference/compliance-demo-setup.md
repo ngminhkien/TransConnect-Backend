@@ -1,8 +1,18 @@
-# Demo hồ sơ nhẹ RAM — AIStor thật, scan/OCR mô phỏng
+﻿# Demo hồ sơ nhẹ RAM — AIStor thật, scan/OCR mô phỏng
 
 Luồng test xuyên suốt và mẫu request/response nằm trong [file kiểm thử hiện hành](../current-test.md); chọn nhóm 06 để test Compliance sau khi xong setup bên dưới.
 
-Ngày 15/10/2026, chủ dự án chọn demo trước và yêu cầu tích hợp vào backend .NET. Dùng file giả lập. Không cần Python, Redis, ClamAV hoặc Tesseract để chạy luồng này. Host và SQL Server hiện có vẫn cần hoạt động. Chưa có giao diện mới; thao tác qua Swagger/API.
+Ngày 15/10/2026, chủ dự án chọn demo trước và yêu cầu tích hợp vào backend .NET. Dùng file giả lập. Không cần Python, Redis, ClamAV hoặc Tesseract. Host và SQL Server vẫn cần hoạt động. Lượt 20/10 đã nối giao diện Driver/Partner cho hai giấy giả; Swagger/API vẫn dùng kiểm tra độc lập.
+
+Định hướng 20/10: MinIO local dev/test, Cloudflare R2 cho cloud/production, còn linh hoạt khi triển khai. Compose AIStor hiện có vẫn là môi trường S3-compatible demo; không tự chuyển/xóa bucket cũ. ComplianceDemo chỉ Development/NOT_VERIFIED, chưa mở giấy thật/Production. Mốc retention/backup giấy thật đã chọn trong Q-DOCUMENT-LIFECYCLE nhưng chưa có job vận hành hoặc cấu hình backup. Avatar Cloudinary tách khỏi kho này.
+
+## Bổ sung 19/10 — hai giấy demo gắn hồ sơ
+
+Có thêm `/compliance/demo/profile-documents` cho GPLX Driver (DriverLicense) và đăng ký Vehicle (VehicleRegistration), header DemoProfileDocuments và các version DemoDocuments. Driver tự quản GPLX; Owner tổ chức Approved đang cộng tác chỉ đọc. Owner tổ chức Approved đang quản lý xe quản file xe trong scope tổ chức; không chuyển file cũ khi xe đổi đơn vị. Manager/Dispatcher/nhà xe khác bị chặn; Admin không tự có quyền file. Contract Operator được gọi qua Common/IProfileDocumentAccess, không reference chéo module.
+
+Mỗi upload cấp số version mới trong transaction trước gọi storage; bản trước được giữ. Các route `/compliance/demo/documents` phía dưới chỉ dành cho file tự do, loại trừ file đã gắn hồ sơ kể cả uploader. Review của người quản file chỉ là mô phỏng, vẫn NOT_VERIFIED và không đổi ReviewStatus Operator. Chi tiết ID, request và luồng phân quyền/xóa tại [test đợt 3–4](../current-test.md).
+
+Apply migration mới bằng `scripts/Update-DevelopmentDatabase.ps1 -IncludeComplianceDemo` từ thư mục Backend (chọn DotnetPath nếu cần). Script probe/preflight trước update; chưa có bằng chứng apply SQL Server/storage thật ở phiên agent vì TLS/SSPI. Tham số chỉ tạo schema, cần tự cấu hình Development + ComplianceDemo để chạy. Phần setup bucket bên dưới tiếp tục áp dụng.
 
 ## 1. Cấu trúc đã tích hợp
 
@@ -19,7 +29,7 @@ TransConnect.Modules.Compliance/
 infra/document-demo/    # chỉ AIStor, .env.example, policy tài khoản ứng dụng
 ```
 
-Không thêm tham chiếu tới module Identity/Operator. Quyền tài khoản qua Common/IAccountDirectory; chỉ chủ tài khoản đọc/sửa/xóa file của mình. Chủ file tự thao tác duyệt để trình diễn, **không phải quyền thẩm định giấy tờ thật**. Admin cũng không mặc nhiên đọc file của người khác. Không liên kết demo với trạng thái duyệt Organization/Driver/Vehicle.
+Không thêm tham chiếu tới module Identity/Operator. Quyền tài khoản qua Common/IAccountDirectory; với file tự do chỉ chủ tài khoản đọc/sửa/xóa, với file gắn hồ sơ áp dụng Common/IProfileDocumentAccess như bổ sung 19/10. Chủ file tự thao tác duyệt để trình diễn, **không phải quyền thẩm định giấy tờ thật**. Admin cũng không mặc nhiên đọc file của người khác. Không liên kết demo với trạng thái duyệt Organization/Driver/Vehicle.
 
 File nằm trong bucket private riêng `transconnect-demo-unscanned`; không có bước chuyển sang clean bucket. Metadata SQL gồm owner, bucket/key, SHA-256, loại/dung lượng, trạng thái mô phỏng, thời điểm và concurrency token. API không trả bucket/key hoặc tên file gốc. Không lưu nội dung OCR thật hoặc thông tin định danh do người dùng nhập.
 
@@ -139,3 +149,15 @@ Adapter dùng AWS SDK S3 4.0.104.4. Để thử R2 sau này: tạo bucket demo p
 Công việc nâng cấp tập trung trong [tracker](../../../TransConnect-Docs/00-project/progress-tracker.md).
 
 Nguồn: [AIStor container](https://docs.min.io/aistor/installation/container/install/), [AWS SDK S3 config](https://docs.aws.amazon.com/sdkfornet/v4/apidocs/items/S3/TS3Config.html), [R2 credentials](https://developers.cloudflare.com/r2/api/tokens/).
+
+## Phân thư mục file — bổ sung 20/10
+
+Theo yêu cầu chủ dự án, ưu tiên chức năng cơ bản, chưa đầu tư thêm UI/UX. Đã đối chiếu GroupCar `Services/Mytoys/Photo/PhotoService.cs`: folder được chọn theo loại ảnh.
+
+Avatar mới: `Cloudinary:RootFolder` mặc định `transconnect/development`, sau đó `/avatars/customer` hoặc `/avatars/operator`, public ID kết thúc bằng AccountId. Đổi RootFolder thành `transconnect/production` cho Production hoặc tên môi trường tương ứng. `UseDynamicFolders=true` gửi cả asset_folder và public_id; tài khoản fixed folders đặt false để folder được suy từ public_id. Không nhận đường dẫn thư mục từ FE. Upload lại cùng tài khoản ghi đè cùng public ID. Không di chuyển/xóa asset đã tồn tại ở đường dẫn cũ.
+
+Giấy demo giữ trong bucket private S3, file mới chia `demo/profiles/{SubjectType}/{SubjectId}/{DocumentType}/{OrganizationId hoặc personal}/{FileId}/original`; demo độc lập chia `demo/accounts/{AccountId}/{FileId}/original`. Download/delete tiếp tục đọc ObjectKey đã lưu nên file cũ còn dùng được; không đổi ACL và không đưa giấy tờ sang Cloudinary.
+
+Cấu hình CloudName, ApiKey, ApiSecret chỉ trong `TransConnect.Host/appsettings.Development.json` bị Git ignore hoặc biến môi trường `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret`. Không gửi secret qua chat hoặc đặt vào FE. Cloudinary chỉ phục vụ avatar trong phạm vi hiện tại; SQL và S3 demo vẫn cần cấu hình/chạy riêng.
+
+Tham khảo: [Cloudinary folder modes](https://cloudinary.com/documentation/folder_modes). API/DTO và schema không đổi; chỉ đổi vị trí lưu file mới.

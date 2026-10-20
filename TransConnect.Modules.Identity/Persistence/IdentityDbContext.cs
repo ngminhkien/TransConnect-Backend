@@ -1,11 +1,29 @@
 using Microsoft.EntityFrameworkCore;
 using TransConnect.Data;
 using TransConnect.Modules.Identity.Entities;
+using TransConnect.Common.Audit;
 
 namespace TransConnect.Modules.Identity.Persistence;
 
-public class IdentityDbContext(DbContextOptions<IdentityDbContext> options) : AppDbContextBase(options)
+public class IdentityDbContext(DbContextOptions<IdentityDbContext> options, IAuditContext? auditContext = null) : AppDbContextBase(options)
 {
+    public DbSet<RbacAuditLog> RbacAuditLogs => Set<RbacAuditLog>();
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        var logs = RbacAuditCapture.Capture(this, auditContext);
+        RbacAuditLogs.AddRange(logs);
+        try { return base.SaveChanges(acceptAllChangesOnSuccess); }
+        catch { foreach (var log in logs) Entry(log).State = EntityState.Detached; throw; }
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        var logs = RbacAuditCapture.Capture(this, auditContext);
+        RbacAuditLogs.AddRange(logs);
+        try { return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken); }
+        catch { foreach (var log in logs) Entry(log).State = EntityState.Detached; throw; }
+    }
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();

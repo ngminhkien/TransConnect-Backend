@@ -7,6 +7,7 @@ public interface IVehicleService
 {
     Task<VehicleResponse> LinkAsync(Guid organizationId, LinkVehicleRequest request, CancellationToken ct);
     Task<IReadOnlyList<VehicleResponse>> ListAsync(Guid organizationId, CancellationToken ct);
+    Task<VehicleResponse> UpdateProfileAsync(Guid organizationId, Guid linkId, UpdateVehicleProfileRequest request, CancellationToken ct);
     Task SuspendAsync(Guid organizationId, Guid linkId, SuspendVehicleRequest request, CancellationToken ct);
-    Task EndAsync(Guid organizationId, Guid linkId, CancellationToken ct);
+    Task EndAsync(Guid organizationId, Guid linkId, EndVehicleRequest request, CancellationToken ct);
 }

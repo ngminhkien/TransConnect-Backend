@@ -7,4 +7,7 @@ public class Vehicle : BaseEntity
 {
     public string RegistrationPlate { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string? VehicleKind { get; set; }
+    public int? SeatCount { get; set; }
+    public decimal? PermittedPayloadKg { get; set; }
 }

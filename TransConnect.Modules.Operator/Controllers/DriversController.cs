@@ -26,12 +26,21 @@ public sealed class DriversController(IDriverService service) : ControllerBase
         return Ok(ApiResponse<DriverResponse>.Success(result));
     }
 
+    [HttpPost("me/resubmit")]
+    public async Task<ActionResult<ApiResponse<DriverResponse>>> Resubmit(SubmitDriverRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<DriverResponse>.Success(await service.ResubmitAsync(request, ct)));
+
     [HttpGet("pending")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<DriverResponse>>>> Pending(CancellationToken ct)
-    {
-        var result = await service.PendingAsync(ct);
-        return Ok(ApiResponse<IReadOnlyList<DriverResponse>>.Success(result));
-    }
+        => Ok(ApiResponse<IReadOnlyList<DriverResponse>>.Success(await service.PendingAsync(ct)));
+
+    [HttpPut("me/profile")]
+    public async Task<ActionResult<ApiResponse<DriverResponse>>> UpdateProfile(UpdateDriverProfileRequest request, CancellationToken ct)
+        => Ok(ApiResponse<DriverResponse>.Success(await service.UpdateProfileAsync(request, ct)));
+
+    [HttpGet("/organizations/{organizationId:guid}/drivers/{engagementId:guid}/profile")]
+    public async Task<ActionResult<ApiResponse<EngagementProfileResponse>>> EngagementProfile(Guid organizationId, Guid engagementId, CancellationToken ct)
+        => Ok(ApiResponse<EngagementProfileResponse>.Success(await service.EngagementProfileAsync(organizationId, engagementId, ct)));
 
     [HttpPost("{id:guid}/review")]
     public async Task<ActionResult<ApiResponse<DriverResponse>>> Review(Guid id, ReviewRequest request, CancellationToken ct)

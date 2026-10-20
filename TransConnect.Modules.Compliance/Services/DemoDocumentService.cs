@@ -19,7 +19,7 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
 {
     public const int MaxBytes = 8 * 1024 * 1024;
 
-    private async Task<Guid> AuthorizeAsync(CancellationToken ct)
+    internal async Task<Guid> AuthorizeAsync(CancellationToken ct)
     {
         if (!options.Value.Enabled || !environment.IsDevelopment())
             throw new NotFoundException("Chức năng demo chưa bật.");
@@ -29,7 +29,12 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
         return accountId;
     }
 
-    public async Task<DemoDocumentResponse> UploadAsync(UploadDemoDocumentRequest request, CancellationToken ct)
+    public Task<DemoDocumentResponse> UploadAsync(UploadDemoDocumentRequest request, CancellationToken ct) => UploadCoreAsync(request, null, ct);
+
+    internal Task<DemoDocumentResponse> UploadProfileAsync(UploadDemoDocumentRequest request, Guid profileDocumentId, CancellationToken ct) =>
+        UploadCoreAsync(request, profileDocumentId, ct);
+
+    private async Task<DemoDocumentResponse> UploadCoreAsync(UploadDemoDocumentRequest request, Guid? profileDocumentId, CancellationToken ct)
     {
         var accountId = await AuthorizeAsync(ct);
         if (!request.SyntheticDataConfirmed)
@@ -52,12 +57,30 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
         var mime = DetectType(content);
         var document = new DemoDocument
         {
-            AccountId = accountId, Bucket = options.Value.Bucket, ContentType = mime,
+            AccountId = accountId, ProfileDocumentId = profileDocumentId, Bucket = options.Value.Bucket, ContentType = mime,
             Size = content.Length, Sha256 = Convert.ToHexString(SHA256.HashData(content))
         };
-        document.ObjectKey = $"demo/{accountId:N}/{document.Id:N}/original";
-        db.DemoDocuments.Add(document);
-        await SaveAsync(ct);
+        var folder = $"demo/accounts/{accountId:N}";
+        if (profileDocumentId is { } profileId)
+        {
+            var profile = await db.DemoProfileDocuments.AsNoTracking().SingleAsync(x => x.Id == profileId, ct);
+            folder = $"demo/profiles/{profile.SubjectType}/{profile.SubjectId:N}/{profile.DocumentType}/{profile.ScopeOrganizationId?.ToString("N") ?? "personal"}";
+        }
+        document.ObjectKey = $"{folder}/{document.Id:N}/original";
+        await using (var reservation = profileDocumentId.HasValue ? await db.Database.BeginTransactionAsync(ct) : null)
+        {
+            if (profileDocumentId is { } rootId)
+            {
+                if (await db.DemoProfileDocuments.Where(x => x.Id == rootId).ExecuteUpdateAsync(
+                    set => set.SetProperty(x => x.LastVersionNumber, x => x.LastVersionNumber + 1), ct) != 1)
+                    throw new NotFoundException("Hồ sơ demo không còn khả dụng.");
+                document.VersionNumber = await db.DemoProfileDocuments.AsNoTracking().Where(x => x.Id == rootId)
+                    .Select(x => x.LastVersionNumber).SingleAsync(ct);
+            }
+            db.DemoDocuments.Add(document);
+            await SaveAsync(ct);
+            if (reservation is not null) await reservation.CommitAsync(ct);
+        }
         try
         {
             await storage.PutAsync(document.Bucket, document.ObjectKey, content, mime, ct);
@@ -76,16 +99,18 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
     public async Task<IReadOnlyList<DemoDocumentResponse>> ListAsync(CancellationToken ct)
     {
         var accountId = await AuthorizeAsync(ct);
-        var documents = await db.DemoDocuments.AsNoTracking().Where(x => x.AccountId == accountId)
+        var documents = await db.DemoDocuments.AsNoTracking().Where(x => x.AccountId == accountId && x.ProfileDocumentId == null)
             .OrderByDescending(x => x.CreatedAt).Take(100).ToListAsync(ct);
         return documents.Select(ToResponse).ToArray();
     }
 
     public async Task<DemoDocumentResponse> GetAsync(Guid id, CancellationToken ct) => ToResponse(await OwnedAsync(id, ct));
 
-    public async Task<DemoDocumentResponse> SimulateAsync(Guid id, SimulateDocumentRequest request, CancellationToken ct)
+    public async Task<DemoDocumentResponse> SimulateAsync(Guid id, SimulateDocumentRequest request, CancellationToken ct) =>
+        await SimulateCoreAsync(await OwnedAsync(id, ct), request, ct);
+
+    internal async Task<DemoDocumentResponse> SimulateCoreAsync(DemoDocument document, SimulateDocumentRequest request, CancellationToken ct)
     {
-        var document = await OwnedAsync(id, ct);
         if (request.Scenario is not ("Success" or "Infected" or "ScannerUnavailable" or "OcrFailed"))
             throw new ValidationAppException("Kịch bản mô phỏng không hợp lệ.");
         if (document.Status != "PendingSimulation")
@@ -115,9 +140,11 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
         return ToResponse(document);
     }
 
-    public async Task<DemoDocumentResponse> ReviewAsync(Guid id, ReviewDemoDocumentRequest request, CancellationToken ct)
+    public async Task<DemoDocumentResponse> ReviewAsync(Guid id, ReviewDemoDocumentRequest request, CancellationToken ct) =>
+        await ReviewCoreAsync(await OwnedAsync(id, ct), request, ct);
+
+    internal async Task<DemoDocumentResponse> ReviewCoreAsync(DemoDocument document, ReviewDemoDocumentRequest request, CancellationToken ct)
     {
-        var document = await OwnedAsync(id, ct);
         if (request.Approved is null) throw new ValidationAppException("Vui lòng chọn kết quả duyệt demo.");
         var status = request.Approved.Value ? "DemoApproved" : "DemoRejected";
         if (document.Status == status) return ToResponse(document);
@@ -129,9 +156,11 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
         return ToResponse(document);
     }
 
-    public async Task<DemoDownloadResponse> DownloadAsync(Guid id, CancellationToken ct)
+    public async Task<DemoDownloadResponse> DownloadAsync(Guid id, CancellationToken ct) =>
+        await DownloadCoreAsync(await OwnedAsync(id, ct), ct);
+
+    internal async Task<DemoDownloadResponse> DownloadCoreAsync(DemoDocument document, CancellationToken ct)
     {
-        var document = await OwnedAsync(id, ct);
         if (document.Status is not ("DemoNeedsReview" or "DemoApproved"))
             throw new ForbiddenAppException("Trạng thái demo này không cho tải file.");
         var content = await storage.ReadAsync(document.Bucket, document.ObjectKey, MaxBytes, ct);
@@ -141,9 +170,11 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
         return new DemoDownloadResponse(content, $"demo-unscanned-{document.Id:N}.bin");
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken ct)
+    public async Task DeleteAsync(Guid id, CancellationToken ct) =>
+        await DeleteCoreAsync(await OwnedAsync(id, ct), ct);
+
+    internal async Task DeleteCoreAsync(DemoDocument document, CancellationToken ct)
     {
-        var document = await OwnedAsync(id, ct);
         document.Status = "Deleting";
         await SaveAsync(ct);
         // Retry DELETE after storage/DB failure is safe; S3 delete is idempotent.
@@ -156,7 +187,7 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
     private async Task<DemoDocument> OwnedAsync(Guid id, CancellationToken ct)
     {
         var accountId = await AuthorizeAsync(ct);
-        return await db.DemoDocuments.SingleOrDefaultAsync(x => x.Id == id && x.AccountId == accountId, ct)
+        return await db.DemoDocuments.SingleOrDefaultAsync(x => x.Id == id && x.AccountId == accountId && x.ProfileDocumentId == null, ct)
             ?? throw new NotFoundException("Không tìm thấy tài liệu demo.");
     }
 
@@ -177,6 +208,6 @@ public sealed class DemoDocumentService(ComplianceDbContext db, IPrivateDocument
         throw new ValidationAppException("Chỉ nhận file mẫu PNG, JPEG hoặc PDF. Kiểm tra đầu file không thay thế quét mã độc.");
     }
 
-    private static DemoDocumentResponse ToResponse(DemoDocument d) => new(d.Id, d.Status, d.ContentType,
+    internal static DemoDocumentResponse ToResponse(DemoDocument d) => new(d.Id, d.Status, d.ContentType,
         d.Size, d.Sha256, d.Scenario, d.ScanResult, d.OcrText, d.CreatedAt, d.SimulatedAt, d.ReviewedAt);
 }

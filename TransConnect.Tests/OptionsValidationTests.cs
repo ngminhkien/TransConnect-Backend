@@ -10,6 +10,31 @@ namespace TransConnect.Tests;
 public class OptionsValidationTests
 {
     [Theory]
+    [InlineData("localhost", false, false, true)]
+    [InlineData("127.0.0.1", false, false, true)]
+    [InlineData("::1", false, false, true)]
+    [InlineData("smtp.example.com", false, false, false)]
+    [InlineData("smtp.example.com", false, true, false)]
+    [InlineData("smtp.example.com", true, false, false)]
+    public void Test_mailbox_can_skip_auth_or_tls_only_on_loopback(string host, bool authenticate, bool tls, bool valid)
+    {
+        var values = new Dictionary<string, string?>
+        {
+            ["Email:Provider"] = "Smtp", ["Email:From:Address"] = "test@transconnect.local",
+            ["Email:Smtp:Host"] = host, ["Email:Smtp:Port"] = "1025",
+            ["Email:Smtp:Authenticate"] = authenticate.ToString(), ["Email:Smtp:UseTls"] = tls.ToString(),
+            ["Email:Smtp:User"] = "test", ["Email:Smtp:Password"] = "test-only"
+        };
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddNotificationModule(new ConfigurationBuilder().AddInMemoryCollection(values).Build());
+        using var provider = services.BuildServiceProvider();
+        var validator = provider.GetRequiredService<IStartupValidator>();
+        if (valid) validator.Validate();
+        else Assert.Throws<OptionsValidationException>(() => validator.Validate());
+    }
+
+    [Theory]
     [InlineData("Jwt:Key", "short")]
     [InlineData("Jwt:Issuer", "")]
     [InlineData("Jwt:Audience", "")]

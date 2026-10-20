@@ -7,6 +7,7 @@ namespace TransConnect.Modules.Operator.Persistence;
 public sealed class OperatorDbContext(DbContextOptions<OperatorDbContext> options) : AppDbContextBase(options)
 {
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<ProfileReview> ProfileReviews => Set<ProfileReview>();
     public DbSet<OrganizationMember> Members => Set<OrganizationMember>();
     public DbSet<OrganizationInvitation> Invitations => Set<OrganizationInvitation>();
     public DbSet<Driver> Drivers => Set<Driver>();

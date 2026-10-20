@@ -4,7 +4,9 @@ namespace TransConnect.Modules.Operator.Entities;
 public class OperatorAuditLog
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid OrganizationId { get; set; }
+    public Guid? OrganizationId { get; set; }
+    public string SubjectType { get; set; } = "Unknown";
+    public string? RequestId { get; set; }
     public Guid ActorAccountId { get; set; }
     public Guid SubjectId { get; set; }
     public string Action { get; set; } = string.Empty;

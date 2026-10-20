@@ -8,6 +8,6 @@ public sealed record SubmitOrganizationRequest
     public string Name { get; init; } = string.Empty;
     [Required(ErrorMessage = "Vui lòng nhập mã đăng ký."), MaxLength(100, ErrorMessage = "Mã tối đa 100 ký tự.")]
     public string RegistrationNumber { get; init; } = string.Empty;
-    [Required(ErrorMessage = "Vui lòng nhập email chủ tổ chức."), EmailAddress(ErrorMessage = "Email không hợp lệ."), MaxLength(256, ErrorMessage = "Email tối đa 256 ký tự.")]
+    [MaxLength(256, ErrorMessage = "Email tối đa 256 ký tự.")]
     public string OwnerEmail { get; init; } = string.Empty;
 }

@@ -6,9 +6,7 @@ using TransConnect.Common.Response;
 
 namespace TransConnect.Common.Auth;
 
-// Đọc permission thẳng từ claim trong JWT (đã có sẵn — xem TokenService), không query DB
-// mỗi request. Đánh đổi: thu hồi permission ở DB không có hiệu lực ngay cho token đang sống,
-// chỉ có hiệu lực từ lần refresh/login tiếp theo.
+// Host refreshes permission claims from DB in OnTokenValidated on every request.
 public class RequirePermissionAttribute(string permission) : Attribute, IAsyncAuthorizationFilter
 {
     public Task OnAuthorizationAsync(AuthorizationFilterContext context)

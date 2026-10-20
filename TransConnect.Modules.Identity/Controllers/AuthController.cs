@@ -11,6 +11,20 @@ namespace TransConnect.Modules.Identity.Controllers;
 [Route("auth")]
 public class AuthController(IAuthService authService) : ControllerBase
 {
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<CurrentUserResponse>>> UpdateProfile(
+        UpdateAccountProfileRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<CurrentUserResponse>.Success(await authService.UpdateProfileAsync(request, ct)));
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<object>>> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+    {
+        await authService.ChangePasswordAsync(request, ct);
+        return Ok(ApiResponse<object>.Success(new { }, "Đã đổi mật khẩu. Vui lòng đăng nhập lại."));
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<ApiResponse<CurrentUserResponse>>> Me(CancellationToken cancellationToken)

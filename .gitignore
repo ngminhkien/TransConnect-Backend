@@ -93,6 +93,8 @@ ehthumbs.db
 Desktop.ini
 
 # Test results
+.codex-build/
+.claude/settings.local.json
 [Tt]est[Rr]esult*/
 *.trx
 *.coverage

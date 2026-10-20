@@ -26,6 +26,12 @@ public class EmailQueue(
             BodyHtml = rendered.BodyHtml,
             BodyText = rendered.BodyText,
             TemplateCode = request.TemplateCode,
+            SourceType = request.SourceType, SourceId = request.SourceId, DeliverBefore = request.DeliverBefore,
+            RetentionCategory = request.TemplateCode switch
+            {
+                "password-reset" or "email-verification" => "Otp",
+                "organization-invitation" => "Invitation", _ => "General"
+            },
             Status = NotificationStatus.Pending,
             ScheduledAt = request.ScheduledAt ?? DateTime.UtcNow
         };

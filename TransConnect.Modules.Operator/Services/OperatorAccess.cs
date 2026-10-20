@@ -3,10 +3,11 @@ using TransConnect.Base.Exceptions;
 using TransConnect.Common.Auth;
 using TransConnect.Modules.Operator.Entities;
 using TransConnect.Modules.Operator.Persistence;
+using TransConnect.Common.Audit;
 
 namespace TransConnect.Modules.Operator.Services;
 
-public sealed class OperatorAccess(OperatorDbContext db, ICurrentUser current, IAccountDirectory accounts)
+public sealed class OperatorAccess(OperatorDbContext db, ICurrentUser current, IAccountDirectory accounts, IAuditContext? auditContext = null)
 {
     public async Task<AccountSummary> AccountAsync(CancellationToken ct)
     {
@@ -55,10 +56,47 @@ public sealed class OperatorAccess(OperatorDbContext db, ICurrentUser current, I
         db.Organizations.Where(x => x.Id == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.UpdatedAt, x => x.UpdatedAt), ct);
 
+    // Both Owner acceptance and Driver creation take this transaction-scoped lock first.
+    // No Identity DbContext dependency; SQL Server coordinates across host instances.
+    public async Task LockAccountAsync(Guid accountId, CancellationToken ct)
+    {
+        if (db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Account lock requires a transaction.");
+        if (db.Database.IsSqlServer())
+        {
+            var resource = "operator-account:" + accountId.ToString("N");
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock @Resource={resource}, @LockMode='Exclusive',
+                    @LockOwner='Transaction', @LockTimeout=10000;
+                IF @result < 0 THROW 51001, 'Could not acquire operator account lock.', 1;
+                """, ct);
+        }
+        else if (db.Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            // SQLite serializes writers, including when no row matches this update.
+            await db.Members.IgnoreQueryFilters().Where(x => x.Id == Guid.Empty)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsActive, x => x.IsActive), ct);
+        }
+        else throw new NotSupportedException("Unsupported account lock provider.");
+    }
+
     public void Audit(Guid organizationId, Guid subjectId, string action, string details = "") =>
         db.AuditLogs.Add(new OperatorAuditLog
         {
-            OrganizationId = organizationId, SubjectId = subjectId, ActorAccountId = current.UserId!.Value,
+            OrganizationId = organizationId == Guid.Empty ? null : organizationId,
+            SubjectType = action switch
+            {
+                "member.invite" or "member.invitation.revoke" or "driver.email-invite" => "OrganizationInvitation",
+                "member.accept" or "member.update" => "OrganizationMember",
+                "driver.review" or "driver.profile-update" => "Driver",
+                "driver.invite" or "driver.accept" or "driver.end" => "DriverEngagement",
+                _ when action.StartsWith("organization.", StringComparison.Ordinal) => "Organization",
+                _ when action.StartsWith("vehicle.", StringComparison.Ordinal) => "OrganizationVehicle",
+                _ => "Unknown"
+            },
+            RequestId = auditContext?.RequestId,
+            SubjectId = subjectId, ActorAccountId = current.UserId!.Value,
             Action = action, Details = details
         });
 }

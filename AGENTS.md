@@ -1,4 +1,20 @@
-# TransConnect-Backend — hướng dẫn agent
+﻿# TransConnect-Backend — hướng dẫn agent
+
+## Triển khai nền tảng người dùng 20/10 — hiện hành
+
+Sau câu trả lời mới, chủ dự án đã yêu cầu viết code và tiếp tục thực hiện, bao gồm luồng Applicant Organization. Đã có account edit/change-password/avatar Cloudinary, Admin account/status/audit với users.manage + admins.manage cho InternalAdmin target; mọi JWT request đọc account và RBAC DB. Applicant nộp/nộp lại và tự nhận Owner khi duyệt; legacy/Admin nộp thay giữ invitation. Driver resubmit giữ ID; ProfileReviews riêng với audit TTL. Thêm API context/quota/list/search và UI Customer/Driver/Admin/Partner; hai giấy demo vẫn NOT_VERIFIED/Development-only.
+
+Migration Operator mới 20261020111920_ApplicantOnboardingAndReviewHistory chưa apply do probe SQL TLS/SSPI. Backend cuối 155/155 pass, 0 skip, gồm test đổi hash trước transaction login; web check/16 test/build pass; Customer analyze sạch/19 test pass, Driver analyze sạch/16 test pass. Cloudinary local chưa cấu hình, demo giấy đã bật; chưa nghiệm thu SMTP/S3/Cloudinary/SQL/browser/device thật. Bằng chứng và phần còn lại ở [tracker](../TransConnect-Docs/00-project/progress-tracker.md#closure-implementation-20-10); request tại current-test Backend. Không tự push/đánh dấu nghiệm thu. Các đoạn rà soát trước triển khai và đợt 1–4 phía dưới là lịch sử, không ghi đè hiện trạng này.
+
+## Rà soát đóng nền tảng người dùng 20/10 — lịch sử trước triển khai
+
+Chủ dự án yêu cầu BE từng phần → FE tương ứng → BE tiếp, sau đó nền vận tải/Trip/Booking/thanh toán/đánh giá. Review tĩnh Docs/code đã ghi [FND-CLOSE-01–09](../TransConnect-Docs/00-project/progress-tracker.md#foundation-closure-20-10); core đợt 1–4 không đồng nghĩa toàn giai đoạn hoàn tất. API context/lời mời/cộng tác/phân trang còn thiếu; User profile edit/change-password và Admin quản lý tài khoản là đề xuất, resubmit Rejected chưa có. Quyết định phần còn mở tại [Q-FOUNDATION-CLOSURE](../TransConnect-Docs/00-project/questions-and-answers.md#q-foundation-closure); không tự đổi scope demo hai giấy hoặc policy login đã hoãn. Link xe hiện Admin-only, Owner quản sau xác nhận. Lượt audit chỉ sửa tài liệu, không chạy test/apply migration mới; 144/144 là bằng chứng đợt code trước.
+
+## Cập nhật triển khai 19/10 — đợt 3–4
+
+Đã thêm hồ sơ tối thiểu Organization/Driver/Vehicle, snapshot liên hệ Driver khi kết thúc cộng tác và đúng hai giấy giả DriverLicense/VehicleRegistration có version/phân quyền theo Owner + engagement/scope tổ chức. API mới và request mẫu ở [test hiện hành](docs/current-test.md). File mới không truy cập được qua endpoint demo owner-only cũ; simulate/review vẫn NOT_VERIFIED, không thay ReviewStatus. Bộ Full và lifecycle giấy thật chưa triển khai; UI đợt 5 chưa nối.
+
+Hai migration `20261019164634_MinimalProfilesAndEngagementSnapshots`, `20261019164639_ProfileDocumentDemoVersions` chưa apply. SQL probe cả ODBC và .NET vẫn lỗi TLS/SSPI trong phiên agent sau khi DB đã mở. Helper `scripts/Update-DevelopmentDatabase.ps1` chạy probe/preflight trước update; dừng host/worker cũ, dùng DB Development, kiểm tra migration history nếu thất bại giữa các module. Lượt test cuối hoàn tất 20/10: 144/144 pass, 0 skip, TRX `.codex-build/test-results/stage3-4-final.trx` (Backend). Chi tiết tại tracker; không suy ra nghiệm thu DB/storage thật.
 
 ## Quy ước tài liệu hiện hành — yêu cầu chủ dự án 17/10/2026
 
@@ -16,7 +32,21 @@
 
 ## Giai đoạn 1 ngày 13/10 — ưu tiên hơn bối cảnh lịch sử bên dưới
 
-- Test hiện hành có toàn bộ luồng/DTO, 125 request và response mẫu trong cùng một file; chưa có xác nhận nghiệm thu thủ công.
+- **Kiểm chứng đợt 1–2 ngày 19/10:** SDK 10.0.302 build thành công; lượt cuối 129/129 test pass, 0 skip, TRX `.codex-build/test-results/stage2-final.trx`. `git diff --check` pass. SQLite/fake provider/SQL script không thay nghiệm thu SQL Server/mailbox live; chưa apply migration. Cảnh báo dependency NU1902/NU1903 hiện có còn nguyên.
+
+- **Code đợt 2 ngày 19/10:** Identity sở hữu RbacAuditLogs, capture allowlist Role/Permission/UserRole/RolePermission cùng SaveChanges; cấm hard-delete User qua SaveChanges. Operator audit OrganizationId nullable, SubjectType/RequestId; RequestId lấy HttpContext.TraceIdentifier qua IAuditContext, job nền để NULL. MaintenanceWorker gọi các IMaintenanceTask theo module; mặc định Maintenance:PollSeconds=3600, BatchSize=200, AuditRetentionMonths=6. Job account reference chỉ báo cáo, tồn tại bao gồm tài khoản khóa/xóa mềm; demo check chỉ khi bật ComplianceDemo.
+- **R-15 đã có code:** EmailRequest có SourceType/SourceId/DeliverBefore; OTP cấp receipt gồm đúng Id và hạn, các handler kiểm tra nguồn tại Identity/Operator. EmailDispatcher claim từng row bằng conditional UPDATE + DispatchLease, kiểm tra nguồn trước gửi/retry, purge body ngay khi kết thúc. EmailRetentionTask dọn OTP 7 ngày, loại khác 30 ngày từ TerminalAt, gồm row xóa mềm, không đụng Sending. LastError chỉ lưu mã/type lỗi. File provider không giữ bản sao; muốn đọc OTP phải dùng hộp thư SMTP test. SMTP bỏ TLS/auth chỉ cho loopback. Gửi mail vẫn có giới hạn at-least-once khi crash sau provider trước commit DB.
+- Migration đợt 2: 20261019112626_RbacAuditRetention, 20261019112631_AuditContextAndRetention, 20261019112636_EmailSourceAndRetention. Dừng host/worker cũ trước apply; email nhạy cảm legacy không có SourceId bị dừng, xóa body và cần cấp lại OTP/lời mời; Down không phục hồi nội dung đã dọn. Chưa apply SQL Server hoặc gửi mail thật. Ghi chú cũ “chưa R-12/14/15” phía dưới là lịch sử đã được thay bởi mục này.
+
+
+- **Code đợt 1 ngày 19/10:** R-18 metadata revoke, giữ replay sau Replaced; R-01 guard Owner/Driver hai chiều, khóa transaction theo AccountId (`sp_getapplock` SQL Server, write lock SQLite test); R-06 unique Owner hoạt động; R-07 InvitationId; R-10 gỡ xe nhận EndVehicleRequest.reason và giữ actor/lý do đầu tiên; R-16 CHECK nhóm/role/review/email status. Migration 20261019105908/105924/105929, preflight tại scripts/Check-FoundationData.sql. Chưa apply SQL Server; kết quả test và các đợt còn lại ở tracker. R-12/R-14/R-15 vẫn chưa code; ghi chú “chưa code” cũ chỉ là lịch sử cho các mục đợt 1.
+
+
+- **Bổ sung 19/10 — đã chốt, chưa code:** Owner/Driver bắt buộc hai tài khoản Operator riêng; email doanh nghiệp nhận Owner. OTP lỗi giữ metadata 7 ngày; dùng hộp thư SMTP test và xóa bản sao nội bộ ngay sau Sent. Chỉ Owner xem full Driver đang cộng tác; kết thúc chỉ snapshot tên/SĐT/địa chỉ không đặt hạn tự động. Các câu hỏi tương ứng trong ghi chú 18/10 đã được trả lời. Q-FIELDS và lifecycle giấy tờ thật vẫn chờ lựa chọn. Xem [các đợt triển khai](../TransConnect-Docs/00-project/progress-tracker.md#implementation-stages-19-10).
+
+- Đánh giá câu trả lời 18/10 (chưa code): [Q&A](../TransConnect-Docs/00-project/questions-and-answers.md), [tracker](../TransConnect-Docs/00-project/progress-tracker.md). R-12 đã chốt audit mặc định 6 tháng, RequestId và thay đổi RBAC theo allowlist; R-18 thêm RevokedAt/RevokedReason, hoãn thiết bị/FamilyId/UI. R-15 xóa body ngay sau Sent, metadata theo loại; còn hỏi OTP lỗi và file local. Hoãn xác minh trước login, giữ gate Operator hiện có. Tách tài khoản Owner/Driver và chi tiết quyền hồ sơ còn hỏi; không tự đổi rule. RefreshToken hiện chỉ IsUsed/IsRevoked: khi thêm Replaced phải giữ nhánh phát hiện replay; chưa có migration cho các quyết định mới.
+
+- Test hiện hành đã được viết lại ngày 20/10 theo yêu cầu chủ dự án: thống kê chức năng BE/FE, điều kiện chạy, luồng test/API/body/kỳ vọng, kiểm tra tích hợp và bằng chứng mới nhất. Đã bỏ hướng dẫn cũ và các đợt bổ sung chồng nhau; giữ anchor sql-concurrency. Không còn bộ 125 request cũ; chưa có xác nhận nghiệm thu thủ công.
 
 - **Ưu tiên 15/10 — demo nhẹ RAM:** chủ dự án chọn storage thật, ClamAV/OCR mô phỏng. Module `TransConnect.Modules.Compliance`/`ComplianceDbContext`/schema `compliance` có `DemoDocuments`, migration `20261015102849_InitComplianceDemo`, AWS SDK S3 4.0.104.4. Không reference chéo module; owner account xác thực qua Common. `/compliance/demo/documents` chỉ được discover khi `ComplianceDemo:Enabled=true` và Development; startup từ chối bật ở môi trường khác. Mặc định tắt. Metadata luôn SIMULATED/NOT_VERIFIED, không thay trạng thái hồ sơ Operator. Download owner-only là attachment `.bin`, no-store; bucket demo riêng, không có promotion sang clean. [Setup/luồng test](docs/reference/compliance-demo-setup.md), [quyết định phạm vi](../TransConnect-Docs/09-decisions/compliance-demo-2026-10-15.md).
 - `infra/document-demo/compose.yaml` chỉ chạy AIStor; license/.env giữ local, không tự chạy ClamAV/Redis/Python. Host Development migrate Compliance **chỉ khi demo được bật**. Chưa apply SQL Server/test live AIStor/R2. Demo không phải triển khai Compliance pháp lý; danh mục R-01–18 còn theo kế hoạch riêng. Common map `ServiceUnavailableAppException` sang 503, che lỗi SDK storage.
@@ -44,6 +74,8 @@
 - Phân biệt **hành vi đã triển khai** với **yêu cầu đã duyệt** và **đề xuất**. Không tự đặt luật nghiệp vụ hoặc chuyển tài liệu sang `APPROVED`. Nếu nguồn mâu thuẫn, nêu file và điểm lệch; hỏi khi cần quyết định nghiệp vụ, hoặc ghi `[TBD - Cần xác nhận từ nhóm]`. Không sửa code chỉ để khớp một bản nháp.
 
 ## Stack và cấu trúc thực tế
+
+- Chạy PowerShell: `powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1`. Script tìm SDK tương thích global.json trên PATH rồi `%USERPROFILE%\.dotnet`, thiết lập DOTNET_ROOT/PATH trong tiến trình chạy, dùng profile http. Tùy chọn `-DotnetPath`, `-NoRestore`. Ngày 17/10: chọn SDK 10.0.302/build Host thành công; startup trong môi trường agent dừng ở SQL encryption, chưa xác nhận Swagger.
 
 Modular monolith C# / ASP.NET Core Web API, tất cả project target `net10.0`, nullable và implicit usings bật. SQL Server qua EF Core **10.0.10**, migrations Code-First theo module. JWT Bearer + RBAC tự xây (không dùng ASP.NET Core Identity), BCrypt.Net-Next, Google.Apis.Auth, MailKit, Serilog, Swashbuckle; NuGet pin version trong từng `.csproj`.
 
@@ -144,3 +176,7 @@ Với Notification, đổi project thành `TransConnect.Modules.Notification` v�
 ### Bối cảnh lượt tài liệu trước đó
 
 Đọc [quyết định sản phẩm](../TransConnect-Docs/09-decisions/transport-platform-direction-2026-10-12.md) và [tác động dữ liệu v2.2 DRAFT](../TransConnect-Docs/04-database/phase-1-entities-and-relationships-review.md#future-model): tài khoản chỉ một nhóm; OPERATOR cố định Organization; Driver cộng tác nhiều Organization; xe một đơn vị quản lý; Trip xe tải theo ngày không bắt buộc Schedule. Thuê nguyên xe có hợp đồng/giữ tiền chỉ là ý tưởng. Code RBAC hiện tại chưa được thay đổi để thực thi phân nhóm này; chưa có các module vận tải. Không sửa code theo chi tiết Q-01–09 chưa chốt. Lượt này chỉ cập nhật tài liệu; không chạy build/test hoặc áp dụng migration.
+
+- Bổ sung 20/10 theo yêu cầu phân folder: Cloudinary RootFolder mặc định transconnect/development, avatars/customer hoặc avatars/operator, UseDynamicFolders mặc định true (fixed folders đặt false). Production phải đổi RootFolder. Giấy demo S3 mới chia theo subject/type/scope/file; giữ ObjectKey cũ để đọc/xóa. Không đổi ACL/API/schema. Ưu tiên chức năng FE cơ bản, không mở rộng UI/UX; cấu hình và giới hạn tại docs/reference/compliance-demo-setup.md của Backend.
+
+- Test toàn giai đoạn hiện dùng bốn terminal: BE 5267, Management 5173, Customer Flutter Web 5174, Driver Flutter Web 5175; current-test.md có kịch bản FE liên thông và API/kỹ thuật chưa có UI. Lệnh chỉ đối chiếu cấu hình, chưa xác nhận các server chạy live.

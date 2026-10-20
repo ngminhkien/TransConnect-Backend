@@ -5,6 +5,8 @@ namespace TransConnect.Modules.Identity.Services;
 
 public interface IAuthService
 {
+    Task<CurrentUserResponse> UpdateProfileAsync(UpdateAccountProfileRequest request, CancellationToken cancellationToken = default);
+    Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
     Task<CurrentUserResponse> GetCurrentUserAsync(CancellationToken cancellationToken = default);
     Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);
     Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);

@@ -4,6 +4,8 @@ namespace TransConnect.Modules.Identity.Services;
 
 public interface IVerificationCodeService
 {
+    Task<IssuedVerificationCode> IssueForDeliveryAsync(Guid userId, VerificationPurpose purpose,
+        CancellationToken cancellationToken = default);
     // Sinh mã mới, lưu hash và trả về mã gốc để gửi qua email. Mã cũ cùng mục đích bị vô hiệu hoá.
     // Ném TooManyRequestsException nếu vượt quá số lần xin mã cho phép trong 1 giờ.
     Task<string> IssueAsync(

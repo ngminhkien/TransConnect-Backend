@@ -9,6 +9,9 @@ public sealed class OperatorAuditLogConfiguration : IEntityTypeConfiguration<Ope
     public void Configure(EntityTypeBuilder<OperatorAuditLog> builder)
     {
         builder.ToTable("AuditLogs");
+        builder.Property(x => x.SubjectType).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.RequestId).HasMaxLength(200);
+        builder.HasIndex(x => x.CreatedAt);
         builder.Property(x => x.Action).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Details).HasMaxLength(2000).IsRequired();
         builder.HasIndex(x => new { x.OrganizationId, x.CreatedAt });

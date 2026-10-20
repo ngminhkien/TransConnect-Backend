@@ -199,8 +199,19 @@ public class IdentityRegressionTests
                 await db.SaveChangesAsync();
                 firstId = first.Id;
                 secondId = second.Id;
+                var user = new User { Email = "race-admin@example.com", FullName = "Admin" };
+                var adminRole = new Role { Name = "Admin" };
+                db.AddRange(user, adminRole);
+                db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = adminRole.Id });
+                foreach (var code in new[] { "roles.manage", "permissions.manage" })
+                {
+                    var permission = new Permission { Code = code };
+                    db.Permissions.Add(permission);
+                    db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permission.Id });
+                }
+                await db.SaveChangesAsync();
                 var token = scope.ServiceProvider.GetRequiredService<ITokenService>()
-                    .GenerateAccessToken(new User(), ["Admin"], ["roles.manage", "permissions.manage"]);
+                    .GenerateAccessToken(user, ["Admin"], ["roles.manage", "permissions.manage"]);
                 client.DefaultRequestHeaders.Authorization = new("Bearer", token.AccessToken);
             }
             gate.Enabled = true;
@@ -246,7 +257,7 @@ public class IdentityRegressionTests
         Assert.Contains("Admin", await permissions.GetRoleNamesAsync(admin.Id));
         Assert.Contains("roles.manage", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Equal(2, await db.Roles.CountAsync());
-        Assert.Equal(4, await db.Permissions.CountAsync());
+        Assert.Equal(5, await db.Permissions.CountAsync());
         Assert.Contains("organizations.manage", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Equal(originalHash, (await db.Users.SingleAsync()).PasswordHash);
     }

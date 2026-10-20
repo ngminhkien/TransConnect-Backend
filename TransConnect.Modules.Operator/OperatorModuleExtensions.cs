@@ -19,9 +19,16 @@ public static class OperatorModuleExtensions
             .Validate(o => o.DefaultDriverLimit is null or > 0, "Hạn mức tài xế phải lớn hơn 0 hoặc để trống.")
             .ValidateOnStart();
         services.AddScoped<OperatorAccess>();
+        services.AddScoped<FoundationReadService>();
+        services.AddScoped<FoundationSearchService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
         services.AddScoped<IDriverService, DriverService>();
         services.AddScoped<IVehicleService, VehicleService>();
+        services.AddScoped<IProfileDocumentAccess, ProfileDocumentAccess>();
+        services.AddScoped<TransConnect.Common.Maintenance.IMaintenanceTask, OperatorAuditRetentionTask>();
+        services.AddScoped<TransConnect.Common.Maintenance.IMaintenanceTask, AccountReferenceCheckTask>();
+        services.AddScoped<TransConnect.Common.Notifications.IEmailDeliveryGuard, InvitationEmailGuard>();
+        services.AddScoped<TransConnect.Common.Notifications.IEmailDeliveryGuard, EngagementEmailGuard>();
         services.TryAddScoped<ITransportObligations, FoundationTransportObligations>();
         return services;
     }

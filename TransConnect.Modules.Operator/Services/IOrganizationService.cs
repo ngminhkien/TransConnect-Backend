@@ -5,9 +5,11 @@ namespace TransConnect.Modules.Operator.Services;
 
 public interface IOrganizationService
 {
+    Task<OrganizationResponse> ResubmitAsync(Guid id, SubmitOrganizationRequest request, CancellationToken ct);
     Task<OrganizationResponse> SubmitAsync(SubmitOrganizationRequest request, CancellationToken ct);
     Task<IReadOnlyList<OrganizationResponse>> ListAsync(CancellationToken ct);
     Task<OrganizationResponse> GetAsync(Guid id, CancellationToken ct);
+    Task<OrganizationResponse> UpdateProfileAsync(Guid id, UpdateOrganizationProfileRequest request, CancellationToken ct);
     Task<OrganizationResponse> ReviewAsync(Guid id, ReviewRequest request, CancellationToken ct);
     Task<InvitationResponse> InviteOwnerAsync(Guid id, CancellationToken ct);
     Task<InvitationResponse> InviteAsync(Guid id, InviteMemberRequest request, CancellationToken ct);

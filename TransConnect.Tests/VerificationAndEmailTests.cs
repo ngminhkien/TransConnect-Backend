@@ -83,6 +83,10 @@ public class VerificationAndEmailTests
         Assert.Single(await db.UserRoles.ToListAsync());
         Assert.Single(await db.VerificationCodes.ToListAsync());
         var mail = await mailDb.EmailMessages.SingleAsync();
+        Assert.Equal(TransConnect.Common.Notifications.EmailSourceTypes.VerificationCode, mail.SourceType);
+        Assert.Equal((await db.VerificationCodes.SingleAsync()).Id, mail.SourceId);
+        Assert.Equal("Otp", mail.RetentionCategory);
+        Assert.NotNull(mail.DeliverBefore);
         Assert.Equal(NotificationStatus.Pending, mail.Status);
         Assert.DoesNotContain("<script>", mail.BodyHtml);
         Assert.Contains("&lt;script&gt;", mail.BodyHtml);
