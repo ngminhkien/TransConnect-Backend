@@ -17,7 +17,8 @@ public static class IdentitySeeder
         "permissions.manage",
         "users.manage",
         "admins.manage",
-        "organizations.manage"
+        "organizations.manage",
+        "locations.manage"
     ];
 
     public static async Task SeedAsync(

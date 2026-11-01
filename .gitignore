@@ -94,6 +94,9 @@ Desktop.ini
 
 # Test results
 .codex-build/
+# Python dataset preparation cache
+__pycache__/
+*.py[cod]
 .claude/settings.local.json
 [Tt]est[Rr]esult*/
 *.trx

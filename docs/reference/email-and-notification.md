@@ -71,6 +71,20 @@ những row `Sending` quá `StuckAfterMinutes` về `Pending` để được th�
 
 ## Cấu hình
 
+### Kiểm tra khi không nhận được thư — cập nhật cấu hình 29/10
+
+`Development email sink completed` nghĩa là provider File đã xử lý rồi xóa bản tạm, không gửi SMTP và không giữ HTML để đọc OTP. HTTP 200 của resend chỉ xác nhận xử lý yêu cầu, không chứng minh mailbox nhận thư.
+
+Trong Development hiện tại, cấu hình ứng dụng chỉ đọc `appsettings.json` rồi `appsettings.Development.json`; không dùng User Secrets/env/CLI để ghi đè. Điền User/Password không tự chuyển provider. Để test SMTP, sửa `Email:Provider` thành `Smtp` trong `TransConnect.Host/appsettings.Development.json`, kiểm tra cấu hình SMTP cùng file, dừng Host rồi chạy từ Backend:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1
+```
+
+Muốn dùng sink thì sửa `Email:Provider` thành `File` trong file Development. Launcher không còn tùy chọn `-EmailProvider`; tham số ứng dụng cũ `--Email:Provider=Smtp` không thay cấu hình Development. Phải restart vì provider được chọn lúc đăng ký DI. Host Development vẫn có hành vi migrate hiện hữu; DB phát triển đã chọn là TransConnectPhase1Dev, xem connection string trong file trước khi bật.
+
+Gửi lại mã mới từ FE sau khi Host sẵn sàng (tôn trọng cooldown); mã đã qua sink không tự gửi lại. Chờ worker và kiểm tra log `qua SMTP`, sau đó Inbox/Spam. Không ghi OTP/password vào log. Xác thực SMTP thành công chưa chứng minh giao thư tới mailbox. Các bước nghiệm thu tập trung trong current-test.md.
+
 Toàn bộ nằm ở section `Email`. Phần nhạy cảm (`Smtp.User`, `Smtp.Password`) để trong
 `appsettings.Development.json` — file này **không commit**.
 

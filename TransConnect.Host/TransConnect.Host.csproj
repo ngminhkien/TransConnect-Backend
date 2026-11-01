@@ -25,6 +25,7 @@
     <ProjectReference Include="..\TransConnect.Modules.Notification\TransConnect.Modules.Notification.csproj" />
     <ProjectReference Include="..\TransConnect.Modules.Operator\TransConnect.Modules.Operator.csproj" />
     <ProjectReference Include="..\TransConnect.Modules.Compliance\TransConnect.Modules.Compliance.csproj" />
+    <ProjectReference Include="..\TransConnect.Modules.Locations\TransConnect.Modules.Locations.csproj" />
   </ItemGroup>
 
 </Project>

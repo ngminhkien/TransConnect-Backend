@@ -17,6 +17,7 @@ using TransConnect.Modules.Identity.Services;
 using TransConnect.Modules.Notification.Workers;
 using TransConnect.Modules.Notification.Persistence;
 using TransConnect.Modules.Operator.Persistence;
+using TransConnect.Modules.Locations.Persistence;
 using Xunit;
 
 namespace TransConnect.Tests;
@@ -192,12 +193,14 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly SqliteConnection _notificationConnection = new("Data Source=:memory:");
     private readonly SqliteConnection _operatorConnection = new("Data Source=:memory:");
+    private readonly SqliteConnection _locationsConnection = new("Data Source=:memory:");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         _connection.Open();
         _notificationConnection.Open();
         _operatorConnection.Open();
+        _locationsConnection.Open();
         builder.UseEnvironment("Testing");
         builder.UseSetting("Jwt:Key", "test-only-key-0123456789-abcdefghijklmnopqrstuvwxyz");
         builder.UseSetting("Jwt:Issuer", "TransConnect.Tests");
@@ -212,9 +215,11 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
                          || d.ServiceType == typeof(IdentityDbContext)
                          || d.ServiceType == typeof(NotificationDbContext)
                          || d.ServiceType == typeof(OperatorDbContext)
+                         || d.ServiceType == typeof(LocationsDbContext)
                          || (d.ServiceType.IsGenericType && (d.ServiceType.GenericTypeArguments.Contains(typeof(IdentityDbContext))
                              || d.ServiceType.GenericTypeArguments.Contains(typeof(NotificationDbContext))
-                             || d.ServiceType.GenericTypeArguments.Contains(typeof(OperatorDbContext))))).ToArray())
+                             || d.ServiceType.GenericTypeArguments.Contains(typeof(OperatorDbContext))
+                             || d.ServiceType.GenericTypeArguments.Contains(typeof(LocationsDbContext))))).ToArray())
                 services.Remove(registration);
             services.AddDbContext<IdentityDbContext>(options =>
             {
@@ -223,6 +228,7 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
                 if (interceptor is not null) options.AddInterceptors(interceptor);
             });
             services.AddDbContext<NotificationDbContext>(options => options.UseSqlite(_notificationConnection));
+            services.AddDbContext<LocationsDbContext>(options => options.UseSqlite(_locationsConnection));
             services.AddDbContext<OperatorDbContext>(options =>
             {
                 if (operatorDatabasePath is null) options.UseSqlite(_operatorConnection);
@@ -247,6 +253,7 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
             _connection.Dispose();
             _notificationConnection.Dispose();
             _operatorConnection.Dispose();
+            _locationsConnection.Dispose();
         }
     }
 }

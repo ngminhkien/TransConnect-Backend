@@ -1,6 +1,7 @@
 param(
     [string]$DotnetPath = 'dotnet',
     [switch]$IncludeComplianceDemo,
+    [switch]$IncludeLocations,
     [switch]$ProbeOnly
 )
 
@@ -22,6 +23,7 @@ $previousPath = $env:PATH
 $previousEnvironment = $env:ASPNETCORE_ENVIRONMENT
 Push-Location $workspaceRoot
 try {
+    Write-Host ("Development SQL target: {0} / {1}" -f $sqlSettings.DataSource, $sqlSettings.InitialCatalog)
     if (!$sqlSettings.IntegratedSecurity) { $env:SQLCMDPASSWORD = $sqlSettings.Password }
     & $sqlcmdPath @sqlArgs -Q 'SET NOCOUNT ON; SELECT 1 AS ConnectionProbe;'
     if ($LASTEXITCODE -ne 0) { throw 'SQL connection probe failed. No migrations were started.' }
@@ -41,11 +43,19 @@ try {
     $env:DOTNET_ROOT_X64 = $env:DOTNET_ROOT
     $env:PATH = $env:DOTNET_ROOT + ';' + $env:PATH
     $env:ASPNETCORE_ENVIRONMENT = 'Development'
+    # The Development Host reads application settings only from its two JSON files.
+    # EF and sqlcmd therefore use the same visible configuration without an env override.
     $efExecutable = Join-Path $env:DOTNET_ROOT 'tools/dotnet-ef.exe'
     if (!(Test-Path -LiteralPath $efExecutable)) { throw 'dotnet-ef was not found under the selected SDK tools directory.' }
+    # Generated obj/assets may point at another Windows account's package cache.
+    # Re-evaluate dependencies for the invoking account before using --no-restore.
+    Write-Host 'Restoring NuGet packages for the current environment...'
+    & $dotnetExecutable restore TransConnect.sln --force --verbosity minimal
+    if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed. No migrations were started.' }
     & $dotnetExecutable build TransConnect.sln --no-restore --verbosity minimal
     if ($LASTEXITCODE -ne 0) { throw 'Build failed. No migrations were started.' }
     $modules = @('Identity', 'Notification', 'Operator')
+    if ($IncludeLocations) { $modules += 'Locations' }
     if ($IncludeComplianceDemo -or $config.ComplianceDemo.Enabled) { $modules += 'Compliance' }
     foreach ($module in $modules) {
         Write-Host "Applying Development migrations for $module..."

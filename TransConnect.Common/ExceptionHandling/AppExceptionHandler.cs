@@ -22,11 +22,28 @@ public class AppExceptionHandler(ILogger<AppExceptionHandler> logger) : IExcepti
             logger.LogError(exception, "Unhandled exception");
         }
 
+        // Genuine failures are still logged above, but a disconnected client cannot
+        // receive an envelope. Writing one would throw again inside the error handler.
+        if (httpContext.RequestAborted.IsCancellationRequested)
+        {
+            if (!httpContext.Response.HasStarted)
+                httpContext.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+            return true;
+        }
+
         httpContext.Response.StatusCode = statusCode;
 
         var errors = (exception as ValidationAppException)?.Errors;
         var response = ApiResponse<object>.Failure(message, errorCode, errors);
-        await httpContext.Response.WriteAsJsonAsync(response, cancellationToken);
+        try
+        {
+            await httpContext.Response.WriteAsJsonAsync(response, cancellationToken);
+        }
+        catch (OperationCanceledException) when (httpContext.RequestAborted.IsCancellationRequested)
+        {
+            if (!httpContext.Response.HasStarted)
+                httpContext.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+        }
 
         return true;
     }

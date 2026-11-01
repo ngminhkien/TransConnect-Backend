@@ -15,6 +15,7 @@ Hai migration `20261019164634_MinimalProfilesAndEngagementSnapshots`, `202610191
 
 ## Tài liệu đang sử dụng
 
+- Locations 27/10: [setup địa giới toàn quốc, clone nguồn, migration/import và bản đồ](docs/reference/locations-setup.md), [contract API](../TransConnect-Docs/05-api/endpoints/locations-endpoints.md), [luồng kiểm tra](docs/current-test.md#locations). Module/source/FE đã được bổ sung; migration riêng opt-in, trạng thái SQL Server và kết quả kiểm chứng ở tracker.
 - [Test hiện hành](docs/current-test.md): một file chứa luồng, DTO, request/response và chỗ xác nhận kết quả.
 - [Câu hỏi và câu trả lời](../TransConnect-Docs/00-project/questions-and-answers.md): nơi chủ dự án trả lời trực tiếp; gồm câu trả lời AS/Q-01–09 đã có.
 - [Công việc và hiện trạng](../TransConnect-Docs/00-project/progress-tracker.md): backlog, phần đã triển khai và bằng chứng nghiệm thu.
@@ -103,7 +104,7 @@ Cấu hình connection string trỏ tới SQL Server trên máy bạn và một 
 
 ```json
 "ConnectionStrings": {
-  "Default": "Server=.\\TEN_INSTANCE;Database=TransConnectDb;User Id=sa;Password=***;TrustServerCertificate=True"
+  "Default": "Server=.\\TEN_INSTANCE;Database=TransConnectPhase1Dev;User Id=sa;Password=***;TrustServerCertificate=True"
 }
 ```
 
@@ -121,7 +122,9 @@ Chỉ cấu hình không chứa bí mật được commit. Quy tắc này áp d�
 | `appsettings.*.example.json` | Mẫu không chứa bí mật thật | ✅ |
 | `appsettings.<Environment>.json`, `.env*` | Cấu hình riêng môi trường (trừ file mẫu) | ❌ |
 
-Có thể dùng `dotnet user-secrets` trong Development hoặc biến môi trường khi triển khai. Không commit file bí mật để sửa lỗi thiếu cấu hình. `Jwt:Key` rỗng sẽ bị startup validation từ chối.
+**Development từ 29/10 — cấu hình ứng dụng chỉ lấy từ file:** Host đọc `appsettings.json` rồi `appsettings.Development.json`; User Secrets, biến môi trường và tham số CLI không ghi đè cấu hình ứng dụng ở môi trường này. Các thiết lập hosting URL/cổng của launch profile được giữ để tiếp tục chạy cổng 5267. Sửa connection string, JWT, Email và storage trong file Development local bị ignore; launcher không còn `-EmailProvider`, helper migration không còn gán ConnectionStrings__Default. Testing giữ cấu hình cô lập của test host; môi trường ngoài Development giữ cơ chế mặc định, không tự áp chính sách local lên triển khai khác. Không commit file bí mật. `Jwt:Key` rỗng sẽ bị startup validation từ chối.
+
+**DB đã chọn 29/10:** `TransConnectPhase1Dev` dùng phát triển/test theo quyết định chủ dự án; `TransConnectDb` đã được sao lưu rồi clear dữ liệu test, giữ schema/migration để tiếp nhận phần ổn định sau. Không tự migrate/seed/import hoặc copy dữ liệu vào DB gốc khi chưa có tác vụ bàn giao cụ thể. Xem bằng chứng backup/clear trong tracker mục DB-DEV.
 
 ASP.NET Core nạp `appsettings.json` trước, rồi `appsettings.Development.json` **đè lên**. Nghĩa là:
 
@@ -242,3 +245,9 @@ buộc** — thiếu nó EF không biết chọn DbContext nào.
 Đợt 1 đã có guard Owner/Driver tách tài khoản, revoke metadata, lịch sử gỡ xe có lý do và ràng buộc DB. Đợt 2 có audit RBAC/RequestId/retention 6 tháng, kiểm tra tham chiếu chỉ báo cáo và retention email theo nguồn. Xem [test hiện hành](docs/current-test.md), [email và hộp thư test](docs/reference/email-and-notification.md), [tiến độ](../TransConnect-Docs/00-project/progress-tracker.md#implementation-stages-19-10).
 
 Trước khởi động Host Development với DB đang dùng: dừng worker cũ, chạy scripts/Check-FoundationData.sql trên DB test và kiểm tra migrations mới. Migration email dừng OTP/lời mời legacy không có ID nguồn, dọn nội dung và yêu cầu cấp lại; không tự phục hồi được body bằng Down. Provider File không giữ email để đọc OTP nữa; dùng hộp thư SMTP test. Chưa có nghiệm thu migration/SMTP/storage live từ môi trường agent.
+
+Quy trình nhánh/PR và phụ thuộc file: [roadmap](../TransConnect-Docs/00-project/roadmap.md). CI kiểm tra push main/feat/**/fix/**/chore/** và PR vào main hoặc feat/user-operator-foundation; kết quả runner phải kiểm chứng sau push. Mẫu PR yêu cầu mã gói, dependency, migration và test delta.
+
+## Tìm địa điểm công cộng — 01/11/2026
+
+`GET /locations/place-search?query=...` là proxy JWT cho tìm POI nguồn OpenStreetMap khi bấm nút/Enter, không autocomplete và không tạo điểm VieGo đã duyệt. Chọn kết quả vẫn phải kiểm tra ghim, tỉnh/phường và xác nhận; có nhập tọa độ thủ công khi provider lỗi. Customer/Driver tìm điểm công bố qua `/locations/shared`, riêng với POI ngoài. Nominatim demo cần single-instance limiter/cache; Host cần restart để nạp endpoint, không migration. DNS của tiến trình Backend phải phân giải được provider; Chrome Secure DNS không thay cấu hình đó. Xem contract Locations, locations-setup và tracker Docs cho lỗi429/503, bằng chứng và giới hạn live.
