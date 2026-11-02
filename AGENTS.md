@@ -1,10 +1,52 @@
-﻿# TransConnect-Backend — hướng dẫn agent
+## Điểm vào hiện hành — 01/11/2026
 
-## Triển khai nền tảng người dùng 20/10 — hiện hành
+Khi đổi tài khoản/agent, đọc [bàn giao](../TransConnect-Docs/00-project/agent-handoff.md) và checkpoint `agent-current-state` trong progress-tracker Docs trước các mục lịch sử bên dưới. Kiểm tra source/Git thực tế: nhiều module/feature mới chưa commit; không reset/clean hoặc coi HEAD là toàn bộ code. Các ghi chú “chưa code/chưa import/Driver không đổi” cũ không ghi đè checkpoint mới. Hướng dẫn chung ở [AGENTS workspace](../AGENTS.md).
+
+# TransConnect-Backend — hướng dẫn agent
+
+## Sửa client SQL cancellation — 01/11
+
+LOC-CANCEL-03 trong tracker: SqlClient có thể ném SqlException khi FE abort, không chỉ OperationCanceledException. Host Configuration/RequestCancellation nhận diện Number=0/State=0/Class=11 cho toàn bộ Errors và bắt buộc RequestAborted; truyền detector vào middleware Common, tránh dependency SQL trong Common. JWT bỏ kết quả request đã hủy, guard sau Authentication dừng trước Authorization/controller; vẫn kiểm tra account/RBAC DB cho request thường. Error handler/writer không ghi body sau disconnect; lỗi SQL thật/timeout vẫn log. Test delta TC-LOC-CANCEL-M01; không restart Host live, import/migrate hay đổi DB/config tự động.
+
+Build solution/full BE 190/190 pass (0 skip), focused cancellation 13/13; Management check/27 test/build và hai Flutter analyze pass. TRX/receipt ở tracker LOC-CANCEL-03, output riêng `.codex-build/cancel-03-bin`. Chưa nghiệm thu SQL/browser live; cần restart BE để nạp code.
+
+## Cập nhật sau import/UI 30/10
+
+Người dùng đã báo import v5.2.0 active thành công. LOC-UI-01 tại tracker: ClientRequestCancellationMiddleware sau Serilog chỉ xử lý OperationCanceledException khi RequestAborted, 499 nếu chưa bắt đầu response; giữ lỗi nội bộ. 42 test BE liên quan pass trong output `.codex-build/loc-ui-bin` do Host live khóa DLL; FE npm check và Chrome fixture pass. Cần restart Host để nạp sửa đổi và test lưu/map live; không tự import/migrate lại theo bàn giao cũ bên dưới.
+
+## Tiếp tục phiên sau — 30/10
+
+Người dùng chưa chạy API import và yêu cầu lưu lại để tự thực hiện sau. Đọc [bàn giao Locations 30/10](../TransConnect-Docs/00-project/progress-tracker.md#locations-resume-30-10). Tiếp tục từ Admin login rồi POST `.codex-build/locations/v5.2.0/locations-dataset.json` vào `/locations/admin/datasets/import` trên Phase1Dev; sau thành công mới kiểm tra COUNT 34/3321 và map. Không tự chạy lại clear DB gốc, không quay về User Secrets/env override, không coi script tải file hoặc SELECT là đã import. Kiểm tra server sau khi mở lại; dữ liệu/trạng thái live đã ghi ngày 29/10 không là probe mới.
+
+## DB-DEV — quyết định mới 29/10, ưu tiên hiện hành
+
+TransConnectPhase1Dev là DB phát triển/test được chủ dự án chọn; TransConnectDb làm đích phần ổn định sau. Theo ủy quyền mới, đã backup COPY_ONLY/CHECKSUM + VERIFYONLY rồi clear 37 dòng test trong TransConnectDb, giữ 28 bảng/21 migration; Phase1Dev fingerprint không đổi. Không drop/merge DB hoặc tự chuyển feature/data. User tự sửa connection string local, agent không ghi appsettings.Development.json thay người dùng.
+
+Ở Development, DevelopmentSettings.Apply loại các provider ghi đè ứng dụng (User Secrets/env/CLI), chỉ đọc appsettings.json rồi appsettings.Development.json. Giữ URL/cổng launch profile để chạy 5267; helper migration không còn gán ConnectionStrings__Default và run.ps1 không còn -EmailProvider. Sửa Email/DB/JWT/storage ở file Development local bị ignore. Testing giữ cấu hình cô lập, ngoài Development giữ cơ chế cũ. Không đưa lại override ngầm hoặc đổi DB gốc khi chưa có yêu cầu bàn giao. Bằng chứng backup/clear/test ở tracker DB-DEV; audit phía dưới là lịch sử trước clear.
+
+## Audit DB 29/10 — giữ dữ liệu hai DB
+
+Đã đọc trực tiếp SQL trên MINHKIEN1 qua client Python/OpenSSL chỉ đọc khi ODBC agent lỗi TLS. TransConnectDb và TransConnectPhase1Dev hiện cùng 28 bảng/21 MigrationId, cấu trúc/index/FK/CHECK khớp; cả hai có schema locations trống. Dữ liệu account/quyền/auth khác nhau, ID không trùng, Phase1Dev chứa hoạt động tháng 10. User Secret DB override đã được người dùng gỡ; đổi kết nối không chuyển dữ liệu. Không suy Phase1Dev là bản sao hoặc được phép xóa. Bằng chứng aggregate ở tracker DB-AUDIT 29/10 và Q-DB-AUDIT-001; chưa backup/merge/drop. Quyền audit đọc này không tự cho phép apply migration/seed hoặc chuyển dữ liệu ngoài yêu cầu mới.
+
+## Locations — triển khai 27/10
+
+Chủ dự án đã yêu cầu triển khai ngay cùng contract/khảo sát/setup, thay giới hạn chỉ phân tích Locations của 22/10; không mở lại nghiệm thu FND-00. Backend feat/loc-01-locations có module Locations/schema riêng, migrations opt-in, API địa giới/version/import, Customer chính chủ và Owner đề xuất/Admin công bố/lịch sử. Dùng IAccountDirectory/ILocationOrganizationAccess, permission locations.manage; không reference entity/context chéo module. Q-009 đã chốt toàn quốc, nguồn pin v5.2.0; Leaflet web/flutter_map Customer trong đợt đầu, Driver không đổi. [Setup](docs/reference/locations-setup.md), [contract](../TransConnect-Docs/05-api/endpoints/locations-endpoints.md), [tracker](../TransConnect-Docs/00-project/progress-tracker.md) giữ hiện trạng/bằng chứng. Chưa apply/import SQL Server hoặc xác nhận bản đồ trên thiết bị thật; không suy test SQLite thành nghiệm thu DB. Không tự commit/push.
+
+## Làm việc song song Docs/ nghiệm thu — chỉ đạo 22/10
+
+Chủ dự án đã yêu cầu triển khai DOC-SYNC-01–03 và bắt đầu đặc tả Locations trong lúc nghiệm thu giai đoạn 1. Việc tạm dừng FND-00 không chặn phân tích/sửa Docs. Không tự chạy migration/test hoặc thay schema nền tảng đang được nghiệm thu. Bắt đầu từ ý tưởng đã có → thống kê nghiệp vụ → hỏi phần chưa chốt trong [Q&A](../TransConnect-Docs/00-project/questions-and-answers.md#locations-decisions) → cập nhật đặc tả → câu hỏi tiếp nối. Không hỏi lại lựa chọn đã trả lời.
+
+Locations đợt đầu gồm điểm chung và địa chỉ riêng/đã lưu Customer; Admin tạo/duyệt, Owner đề xuất chờ duyệt mới công khai; giữ lịch sử, đổi vị trí lớn tạo điểm mới, ngừng dùng chặn lựa chọn mới. Bổ sung Q-005–007: nhập tọa độ tay, bản đồ sau; Rejected tạo đề xuất mới; Admin duyệt yêu cầu sửa/ngừng dùng bản công khai. Chi tiết còn mở ghi riêng, chưa sinh code/migration Locations. [Roadmap](../TransConnect-Docs/00-project/roadmap.md#parallel-locations) giữ thứ tự, [tracker](../TransConnect-Docs/00-project/progress-tracker.md#doc-sync-22-10) giữ bằng chứng. Model hiện tại có 20 bảng trong bốn module; mô tả 16 bảng ở các ghi chú cũ là lịch sử trước các bổ sung.
+
+## Kết quả người dùng 22/10 — ưu tiên hiện hành
+
+Người dùng xác nhận script migration Development thành công, BE/Swagger chạy được, Customer/Driver chạy trên máy ảo; đã điền Cloudinary. SMTP, upload Cloudinary và giấy demo chưa test; Management chưa có báo cáo. Q-FND-00-001 đã trả lời, FND-00 chưa nghiệm thu. Tạm dừng theo yêu cầu, chờ người dùng test tiếp; không tự migrate/test/chuyển gói. Kết quả này thay ghi chú cũ chưa apply/chưa điền Cloudinary ở dưới; không suy agent đã kết nối DB hoặc các luồng E2E đã pass. Chi tiết ở tracker mục fnd-00-user-test-22-10.
+
+## Triển khai nền tảng người dùng 20/10 — code hiện hành, môi trường xem cập nhật 22/10
 
 Sau câu trả lời mới, chủ dự án đã yêu cầu viết code và tiếp tục thực hiện, bao gồm luồng Applicant Organization. Đã có account edit/change-password/avatar Cloudinary, Admin account/status/audit với users.manage + admins.manage cho InternalAdmin target; mọi JWT request đọc account và RBAC DB. Applicant nộp/nộp lại và tự nhận Owner khi duyệt; legacy/Admin nộp thay giữ invitation. Driver resubmit giữ ID; ProfileReviews riêng với audit TTL. Thêm API context/quota/list/search và UI Customer/Driver/Admin/Partner; hai giấy demo vẫn NOT_VERIFIED/Development-only.
 
-Migration Operator mới 20261020111920_ApplicantOnboardingAndReviewHistory chưa apply do probe SQL TLS/SSPI. Backend cuối 155/155 pass, 0 skip, gồm test đổi hash trước transaction login; web check/16 test/build pass; Customer analyze sạch/19 test pass, Driver analyze sạch/16 test pass. Cloudinary local chưa cấu hình, demo giấy đã bật; chưa nghiệm thu SMTP/S3/Cloudinary/SQL/browser/device thật. Bằng chứng và phần còn lại ở [tracker](../TransConnect-Docs/00-project/progress-tracker.md#closure-implementation-20-10); request tại current-test Backend. Không tự push/đánh dấu nghiệm thu. Các đoạn rà soát trước triển khai và đợt 1–4 phía dưới là lịch sử, không ghi đè hiện trạng này.
+Lượt agent ngày 20/10 chưa apply được migration do TLS/SSPI; người dùng đã báo script Development thành công ngày 22/10, agent chưa đối chiếu history trực tiếp. Backend cuối 155/155 pass, 0 skip, gồm test đổi hash trước transaction login; web check/16 test/build pass; Customer analyze sạch/19 test pass, Driver analyze sạch/16 test pass. Cloudinary đã được người dùng điền cấu hình ngày 22/10, demo giấy đã bật ở lần kiểm tra gần nhất; chưa nghiệm thu SMTP/S3/Cloudinary/SQL/browser/device thật. Bằng chứng và phần còn lại ở [tracker](../TransConnect-Docs/00-project/progress-tracker.md#closure-implementation-20-10); request tại current-test Backend. Không tự push/đánh dấu nghiệm thu. Các đoạn rà soát trước triển khai và đợt 1–4 phía dưới là lịch sử, không ghi đè hiện trạng này.
 
 ## Rà soát đóng nền tảng người dùng 20/10 — lịch sử trước triển khai
 
@@ -20,7 +62,7 @@ Hai migration `20261019164634_MinimalProfilesAndEngagementSnapshots`, `202610191
 
 - Chỉ một file test thủ công: [current-test](docs/current-test.md). Cập nhật tại chỗ theo yêu cầu mới nhất; chỉ xóa sau khi chủ dự án xác nhận, đã lưu ngày/phạm vi/môi trường/kết quả vào tracker và sửa link. Không xóa test code hoặc tiêu chí nghiệm thu.
 - Chỉ một nơi hỏi/đáp: [questions-and-answers](../TransConnect-Docs/00-project/questions-and-answers.md). Chủ dự án điền trực tiếp. Đọc câu trả lời mới trước mỗi tác vụ, giữ nguyên câu trả lời cũ; nếu chưa rõ, thêm câu hỏi tiếp nối ngay tại mục đó. Không tạo AS/Answer/phiếu duyệt mới và không hỏi lại điều đã chốt.
-- Tất cả công việc sắp làm/đang làm, hiện trạng, backlog và bằng chứng nghiệm thu tập trung ở [progress-tracker](../TransConnect-Docs/00-project/progress-tracker.md). Không tạo file roadmap/plan/status/traceability trùng chức năng.
+- Roadmap giữ lộ trình/dependency; progress-tracker giữ trạng thái/bằng chứng; Q&A giữ quyết định; current-test giữ test thủ công. Quy ước roadmap riêng ngày 21/10 thay quy ước không có roadmap trước đó.
 - Giữ các file quy tắc/đặc tả. Cách triển khai để trong mục tham khảo; không biến tài liệu tham khảo thành quyết định hoặc checklist công việc thứ hai. Cập nhật bản hiện có, không tạo bản nháp theo ngày chỉ để thay vài mục.
 - Sau câu trả lời hoặc thay đổi code: đồng bộ câu hỏi, tracker và tài liệu dữ liệu/API/quy tắc liên quan trong cùng tác vụ; sửa file test nếu hành vi đổi. Ghi bằng chứng đã chạy và giới hạn kiểm chứng; không tự đánh dấu nghiệm thu.
 - Với APPROVED: giữ quyết định; đề xuất thay đổi ở file câu hỏi/mục DRAFT hiện có, sau khi được chốt mới cập nhật đặc tả. Việc chuyển file/sửa link không tự đổi mức phê duyệt.
@@ -140,7 +182,7 @@ Với Notification, đổi project thành `TransConnect.Modules.Notification` v�
 
 ### CI GitHub Actions (16/10/2026)
 
-- `.github/workflows/ci.yml` chạy khi push/PR vào `main` và `workflow_dispatch`: Ubuntu, SDK `10.0.x`, restore solution, build Release, test `TransConnect.Tests` không build/restore lại; upload TRX 7 ngày kể cả khi test thất bại.
+- `.github/workflows/ci.yml` (cập nhật FND-00 ngày 21/10) chạy push main/feat/**/fix/**/chore/**, PR vào main hoặc feat/user-operator-foundation và workflow_dispatch: Ubuntu, SDK `10.0.x`, restore solution, build Release, test `TransConnect.Tests` không build/restore lại; upload TRX 7 ngày kể cả khi test thất bại.
 - CI không cần secret, SQL Server/SMTP thật; không chạy Host Development, apply migration hoặc deploy. Chưa có Dockerfile/Compose triển khai API/script deploy; Compose demo storage vẫn riêng.
 - Workflow chỉ được kiểm chứng trên GitHub sau khi chủ dự án push; không ghi CI đã pass nếu chưa có kết quả runner.
 
@@ -180,3 +222,7 @@ Với Notification, đổi project thành `TransConnect.Modules.Notification` v�
 - Bổ sung 20/10 theo yêu cầu phân folder: Cloudinary RootFolder mặc định transconnect/development, avatars/customer hoặc avatars/operator, UseDynamicFolders mặc định true (fixed folders đặt false). Production phải đổi RootFolder. Giấy demo S3 mới chia theo subject/type/scope/file; giữ ObjectKey cũ để đọc/xóa. Không đổi ACL/API/schema. Ưu tiên chức năng FE cơ bản, không mở rộng UI/UX; cấu hình và giới hạn tại docs/reference/compliance-demo-setup.md của Backend.
 
 - Test toàn giai đoạn hiện dùng bốn terminal: BE 5267, Management 5173, Customer Flutter Web 5174, Driver Flutter Web 5175; current-test.md có kịch bản FE liên thông và API/kỹ thuật chưa có UI. Lệnh chỉ đối chiếu cấu hình, chưa xác nhận các server chạy live.
+
+## Quy trình theo nhánh — 21/10
+
+Đọc [roadmap](../TransConnect-Docs/00-project/roadmap.md) trước khi làm. Ghi đề xuất trong tracker: mã gói, nhánh/base/target, dependency A → B và WRITE/READ/VERIFY/GENERATED; câu hỏi theo Q-<GÓI>-<SỐ> trong Q&A, không tạo file hỏi riêng. Cập nhật phạm vi file trước khi sửa ngoài kế hoạch. PR dùng .github/pull_request_template.md; giữ test delta và bộ SHA liên repo. FND-00 đang thực hiện trên chore/fnd-00-delivery-workflow, không tự mở nhánh tương lai hoặc merge/push.

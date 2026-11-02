@@ -7,7 +7,7 @@ namespace TransConnect.Common.Response;
 // parse 1 định dạng duy nhất.
 public static class ApiResponseWriter
 {
-    public static Task WriteFailureAsync(
+    public static async Task WriteFailureAsync(
         HttpContext httpContext,
         int statusCode,
         string errorCode,
@@ -17,10 +17,25 @@ public static class ApiResponseWriter
         // exception thật bằng 1 InvalidOperationException khó hiểu.
         if (httpContext.Response.HasStarted)
         {
-            return Task.CompletedTask;
+            return;
+        }
+
+        if (httpContext.RequestAborted.IsCancellationRequested)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+            return;
         }
 
         httpContext.Response.StatusCode = statusCode;
-        return httpContext.Response.WriteAsJsonAsync(ApiResponse<object>.Failure(message, errorCode));
+        try
+        {
+            await httpContext.Response.WriteAsJsonAsync(ApiResponse<object>.Failure(message, errorCode),
+                httpContext.RequestAborted);
+        }
+        catch (OperationCanceledException) when (httpContext.RequestAborted.IsCancellationRequested)
+        {
+            if (!httpContext.Response.HasStarted)
+                httpContext.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+        }
     }
 }

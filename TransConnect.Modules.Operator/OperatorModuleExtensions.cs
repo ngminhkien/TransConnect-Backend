@@ -25,6 +25,7 @@ public static class OperatorModuleExtensions
         services.AddScoped<IDriverService, DriverService>();
         services.AddScoped<IVehicleService, VehicleService>();
         services.AddScoped<IProfileDocumentAccess, ProfileDocumentAccess>();
+        services.AddScoped<ILocationOrganizationAccess, LocationOrganizationAccess>();
         services.AddScoped<TransConnect.Common.Maintenance.IMaintenanceTask, OperatorAuditRetentionTask>();
         services.AddScoped<TransConnect.Common.Maintenance.IMaintenanceTask, AccountReferenceCheckTask>();
         services.AddScoped<TransConnect.Common.Notifications.IEmailDeliveryGuard, InvitationEmailGuard>();

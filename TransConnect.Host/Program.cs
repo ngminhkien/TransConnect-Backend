@@ -12,6 +12,7 @@ using TransConnect.Common.Notifications;
 using TransConnect.Common.Options;
 using TransConnect.Common.Response;
 using TransConnect.Host.Options;
+using TransConnect.Host.Configuration;
 using TransConnect.Modules.Identity;
 using TransConnect.Modules.Identity.Controllers;
 using TransConnect.Modules.Identity.Persistence;
@@ -22,6 +23,8 @@ using TransConnect.Modules.Notification;
 using TransConnect.Modules.Notification.Persistence;
 using TransConnect.Modules.Compliance;
 using TransConnect.Modules.Compliance.Persistence;
+using TransConnect.Modules.Locations;
+using TransConnect.Modules.Locations.Persistence;
 
 const string CorsPolicyName = "TransConnectClients";
 
@@ -36,6 +39,9 @@ try
     Log.Information("Đang khởi động TransConnect.Host...");
 
     var builder = WebApplication.CreateBuilder(args);
+    DevelopmentSettings.Apply(builder);
+    if (builder.Environment.IsDevelopment())
+        Log.Information("Development application settings: appsettings.json + appsettings.Development.json; User Secrets/environment/CLI application overrides are disabled.");
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
@@ -46,6 +52,7 @@ try
     builder.Services.AddIdentityModule(builder.Configuration);
     builder.Services.AddNotificationModule(builder.Configuration);
     builder.Services.AddOperatorModule(builder.Configuration);
+    builder.Services.AddLocationsModule(builder.Configuration);
     builder.Services.AddComplianceModule(builder.Configuration, builder.Environment);
 
     // Cross-cutting (TransConnect.Common)
@@ -90,7 +97,8 @@ try
     var mvc = builder.Services.AddControllers()
         .AddVietnameseApiValidation()
         .AddApplicationPart(typeof(AuthController).Assembly)
-        .AddApplicationPart(typeof(TransConnect.Modules.Operator.Controllers.OrganizationsController).Assembly);
+        .AddApplicationPart(typeof(TransConnect.Modules.Operator.Controllers.OrganizationsController).Assembly)
+        .AddApplicationPart(typeof(LocationsDbContext).Assembly);
 
     // Remove automatic discovery too: demo routes must not exist when disabled.
     var complianceAssembly = typeof(TransConnect.Modules.Compliance.Controllers.DemoDocumentsController).Assembly;
@@ -149,10 +157,20 @@ try
             {
                 OnTokenValidated = async context =>
                 {
-                    if (context.Principal is null || !await context.HttpContext.RequestServices
-                        .GetRequiredService<LiveAccountClaims>()
-                        .RefreshAsync(context.Principal, context.HttpContext.RequestAborted))
-                        context.Fail("Tài khoản không còn khả dụng.");
+                    try
+                    {
+                        if (context.Principal is null || !await context.HttpContext.RequestServices
+                            .GetRequiredService<LiveAccountClaims>()
+                            .RefreshAsync(context.Principal, context.HttpContext.RequestAborted))
+                            context.Fail("Tài khoản không còn khả dụng.");
+                    }
+                    catch (Exception exception) when (RequestCancellation.IsClientCancellation(
+                        exception, context.HttpContext.RequestAborted))
+                    {
+                        // Do not let JwtBearer log a canceled DB lookup as an auth error.
+                        // No identity is accepted; the post-auth guard stops this request.
+                        context.NoResult();
+                    }
                 },
                 OnChallenge = context =>
                 {
@@ -201,6 +219,10 @@ try
         var notificationDbContext = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
         await notificationDbContext.Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<OperatorDbContext>().Database.MigrateAsync();
+        // Locations is explicitly migrated by the setup command; never alter the current
+        // foundation acceptance database just by starting a new Development host.
+        if (builder.Configuration.GetValue<bool>("Locations:ApplyMigrationsOnStartup"))
+            await scope.ServiceProvider.GetRequiredService<LocationsDbContext>().Database.MigrateAsync();
         if (complianceDemoEnabled)
             await scope.ServiceProvider.GetRequiredService<ComplianceDbContext>().Database.MigrateAsync();
 
@@ -231,6 +253,8 @@ try
     }
 
     app.UseSerilogRequestLogging();
+    app.UseMiddleware<ClientRequestCancellationMiddleware>(
+        (Func<Exception, CancellationToken, bool>)RequestCancellation.IsClientCancellation);
 
     app.UseHttpsRedirection();
 
@@ -239,6 +263,11 @@ try
     app.UseCors(CorsPolicyName);
 
     app.UseAuthentication();
+    app.Use(async (context, next) =>
+    {
+        context.RequestAborted.ThrowIfCancellationRequested();
+        await next(context);
+    });
     app.UseAuthorization();
 
     app.MapControllers();

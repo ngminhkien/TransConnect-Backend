@@ -1,13 +1,82 @@
 # Test toàn giai đoạn nền tảng người dùng — 1 BE và 3 FE
 
-Cập nhật **20/10/2026** theo code Backend và ba frontend hiện có. Đây là file test thủ công duy nhất, đã thay toàn bộ hướng dẫn cũ và các phần bổ sung chồng nhau. Ưu tiên chức năng cơ bản; không đặt tiêu chí hoàn thiện UI/UX trong lượt này.
+Cập nhật nền tảng **22/10/2026**, Locations **27/10/2026**, tìm địa điểm và redesign hai app **01/11/2026** theo code hiện có. Đây là file test thủ công duy nhất. Gói FE-APPS-06 bổ sung kiểm tra UI/responsive đã được giao; các tích hợp ngoại vi vẫn theo phạm vi nghiệm thu riêng.
 
 **Trạng thái:** đã có code và kiểm thử tự động; chưa xác nhận nghiệm thu chạy thật với SQL Server, SMTP, Cloudinary, S3 và trình duyệt/thiết bị. Kết quả thực hiện và lịch sử giữ tại [progress-tracker](../../TransConnect-Docs/00-project/progress-tracker.md#test-evidence).
 
 ## 1. Những phần đã làm
 
+### LOC-CANCEL-03 — Hủy request Locations, 01/11
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-LOC-CANCEL-M01 — Hủy tải dữ liệu | Restart BE để nạp bản sửa; mở Management ở chế độ dev, chuyển nhanh Địa điểm → mục khác → Địa điểm; mở/đóng form, đổi tỉnh khi phường đang tải | Request cũ có thể hiện `(canceled)` ở Network. Request mới vẫn trả 200 và hiển thị đúng dữ liệu/quyền. Client abort không sinh chuỗi `HTTP ... 500` / JWT `Exception occurred while processing message` / `An exception was thrown attempting to execute the error handler`. BE có thể ghi 499 cho request đã hủy; đây là trạng thái log, không bảo đảm client đã đóng kết nối nhận được response. Nếu giữ nguyên trang vẫn nhận 500 thì ghi URL/thời điểm/log mới để phân biệt lỗi SQL thật |
+
+Ca tự động đã tách hủy SqlClient với SQL timeout/lỗi thật và giữ kiểm tra quyền DB từng request. Không cần import/migrate lại hoặc cấu hình API key bản đồ cho ca này. Bằng chứng tại [LOC-CANCEL-03](../../TransConnect-Docs/00-project/progress-tracker.md#loc-cancel-03); chưa nghiệm thu live SQL/browser.
+
+### FE-EXPERIENCE-03 — Horizontal workspace và giữ phiên, 31/10
+
+Người dùng đã chọn bố cục ngang và yêu cầu không mất đăng nhập khi đóng/mở tab. Giữ BE token JSON/refresh/logout hiện hữu, không apply migration hoặc thay TTL. [Bằng chứng](../../TransConnect-Docs/00-project/progress-tracker.md#fe-experience-03) phân biệt fixture với live.
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-FE-EXPERIENCE-M01 — Đóng/mở tab | Đăng nhập Admin/Operator trong môi trường phát triển, đóng tab, mở lại đúng origin; thử access token đã hết hạn nhưng refresh còn hiệu lực | Khôi phục đúng tài khoản/ngữ cảnh, refresh khi 401, không bắt nhập lại chỉ vì đóng tab. Không hứa giữ phiên sau xóa storage/ẩn danh hoặc refresh bị BE thu hồi/hết hạn |
+| TC-FE-EXPERIENCE-M02 — Logout/đa tab | Mở hai tab cùng tài khoản; logout ở một tab; đóng/mở lại và thử refresh đang chờ | Tab còn lại bỏ dữ liệu bảo vệ, không tự hồi phiên. Persistent storage được xóa; phản hồi refresh/retry cũ không khôi phục hoặc xóa phiên mới. Backend revoke offline vẫn có giới hạn cũ |
+| TC-FE-EXPERIENCE-M03 — Đổi account/môi trường/lỗi | Đổi account từ tab khác; gửi thao tác của page cũ; đổi API base URL; block storage; giả lập refresh 503 hoặc 401 | Page cũ không thực hiện mutation bằng account mới. Key lưu phiên tách API. Storage bị chặn fallback không crash, không cam kết bền vững. 503 giữ phiên để retry; refresh bị từ chối xóa phiên. Web Locks phối hợp refresh đa tab khi browser hỗ trợ |
+| TC-FE-EXPERIENCE-M04 — UI ngang và hồi quy | Desktop bốn nav/link detail/Back, mobile drawer, danh sách/filter/error/empty; login/Operator register | Header đỏ + nav ngang thay rail desktop, selection đúng URL/quyền. 320/390/768/1280/1440px không tràn. Giữ điều kiện duyệt tài xế/khóa account, form và các API Locations cũ. Bài `check:ui -- --admin --session` dùng fixture, live vẫn phải kiểm riêng |
+
+<a id="fe-redesign"></a>
+### FE-REDESIGN-02 — Management mới, 31/10
+
+Người dùng đã yêu cầu redesign, giữ màu rule và contract BE, chọn danh sách làm trung tâm. Đây là delta UI, không thay policy tài khoản, xét duyệt, locations hoặc tiêu chí SQL/storage thật. Bằng chứng thực chạy ghi tại [tracker](../../TransConnect-Docs/00-project/progress-tracker.md#fe-redesign-02).
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-FE-REDESIGN-M01 — Sidebar/route | Chuyển Đơn vị vận tải → Tài xế → Địa điểm → Tài khoản; mở chi tiết tổ chức, Back, refresh deep link | Đúng URL/nội dung, chỉ một `aria-current=page`; mục chọn nền đỏ đặc/chữ trắng/marker, mục cũ hết chọn. Trang chi tiết vẫn chọn mục cha. Thử Admin chỉ `locations.manage`: không hiện menu ngoài quyền và logo dẫn qua landing hợp lệ |
+| TC-FE-REDESIGN-M02 — Mobile navigation | Thu nhỏ 390/320/768px, mở menu bằng bàn phím, Tab/Shift+Tab, Escape; mở lại và chọn mục | Menu đóng inert, không focus vào link offscreen; mở đưa focus vào menu, Tab không lọt ra nền; Escape trả focus trigger, chọn mục đóng menu/đến nội dung. Không khóa scroll hoặc inert nền sau khi resize sang desktop |
+| TC-FE-REDESIGN-M03 — Lists/states | Bảng org/accounts/drivers, bộ lọc, phân trang; thử rỗng/lỗi/loading, tên/email dài; xem 320/390/768/1280/1440px | Bảng desktop và records mobile có đủ thông tin/thao tác, không tràn viewport. Tổng số/phân trang lấy BE, không KPI giả. Error khác empty và có cách phục hồi theo hook hiện có; typography tiếng Việt tải local |
+| TC-FE-REDESIGN-M04 — Mutation contract | Khóa/mở tài khoản và duyệt/từ chối tài xế trong môi trường test; thử khi lý do rỗng/tự khóa; thao tác busy | Giữ guard/lý do và quyền BE. Account PUT `/accounts/{id}/status` dùng `isActive/reason`; Driver POST `/drivers/{id}/review` dùng `approved/note`. Reload trạng thái từ BE sau thành công, lỗi không báo thành công. Browser fixture chỉ xác minh UI/request shape; live success phải thử riêng |
+| TC-FE-REDESIGN-M05 — Regression foundation/locations | Login/Operator register, Partner profile/workspace, detail hồ sơ; form địa điểm tỉnh→phường/map/nhập tay/xác nhận/lưu, history và review | UI mới giữ flow/validation/permission/version của contract cũ; không thêm Trip/Booking/analytics hoặc thay token/CORS. Tiếp các TC-LOC-M01–M06 cho live dữ liệu/tiles; chụp fixture không thay nghiệm thu map/BE thật |
+
+<a id="fe-quality"></a>
+### FE-QUALITY-01 — Management base, 30/10
+
+Đợt cải thiện FE được chủ dự án giao riêng, không biến toàn bộ UI polish thành điều kiện nghiệm thu nền tảng cũ. Kết quả/bằng chứng ở [tracker](../../TransConnect-Docs/00-project/progress-tracker.md#fe-quality-01). Dùng tài khoản/dữ liệu test trên môi trường phát triển; bộ `npm run check:ui` dùng API fixture không thay các ca live dưới đây.
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-FE-QUALITY-M01 — Nhận diện/ngữ cảnh | Mở `/login`, đổi Admin ↔ Đối tác, bật/tắt tạo tài khoản | UI/title là VieGo. Heading, mô tả, CTA và hướng dẫn đúng chế độ. Không có đăng ký Admin công khai; đổi mode xóa lỗi cũ. Repo/API/session key không đổi |
+| TC-FE-QUALITY-M02 — Form/đang xử lý | Form trống/email sai, điền hợp lệ; hiện/ẩn mật khẩu; gửi khi mạng chậm, nhấn lại | Validation không gửi form thiếu; autocomplete current-password/new-password đúng mode; có accessible name/state cho hiện mật khẩu. Busy khóa cả Họ tên/cổng/checkbox/submit, có trạng thái chờ và không gửi lặp. Với API thật: đăng nhập đúng vai trò; đăng ký Operator đi tiếp xác thực email, không suy fixture chứng minh thành công live |
+| TC-FE-QUALITY-M03 — Lỗi/bàn phím | Dùng API fixture hoặc validation từ BE, nhập sai rồi submit; dùng Tab/Enter trong summary | Lỗi giữ dữ liệu, summary nhận focus, lỗi field đọc được và liên kết đến ô; field có aria-invalid/description; thông báo không chỉ dùng màu. Sai mật khẩu/mất mạng không hiện thành công |
+| TC-FE-QUALITY-M04 — Responsive/deploy | Xem 320/390/768/1440px; tăng zoom/cỡ chữ, màn hình ngang; khi có host, truy cập/refresh deep link trực tiếp | Không tràn ngang/che CTA; input mobile đọc được. Focus và điều khiển còn thao tác được. Host phục vụ asset/SPA đúng và dùng API HTTPS đúng origin; chưa có URL deploy thì ghi NOT RUN, không coi preview là pass |
+
+<a id="locations"></a>
+### Locations — phần bổ sung 27/10, cần chạy với DB đã chuẩn bị
+
+**Delta UI/abort 30/10:** người dùng đã báo import v5.2.0 active thành công. Restart BE để nạp xử lý client disconnect (OperationCanceledException + RequestAborted → 499, không coi là lỗi 500; cancellation nội bộ vẫn báo lỗi), refresh Management. Trang Locations có hai tab, tìm kiếm bằng Enter/nút, form thêm/sửa chia thông tin–bản đồ và thông báo lưu. Kiểm tra Admin chỉ có locations.manage vào đúng trang/menu, chọn tỉnh→phường, nhập tọa độ hoặc ghim rồi xác nhận/lưu/mở lại; thu nhỏ 390px, thử lỗi API phải hiện lỗi thay vì danh sách rỗng. 42 test BE và npm check/16 test đã pass; Chrome API giả đã thử form submit/guard/error/mobile, không thay nghiệm thu SQL/tiles thật. Ảnh nền tiles không tải được trong môi trường agent, fallback nhập tay đã thử.
+
+**Delta LOC-MAP-02, 31/10:** TC-LOC-M03 bổ sung sau khi mất mạng/tile lỗi: khôi phục kết nối, bấm **Thử tải lại bản đồ**, ảnh nền nạp lại và thông tin/ghim/tọa độ vẫn giữ nguyên, không cần đóng form. Người dùng báo DNS NXDOMAIN thật; đã đối chiếu DNS mặc định lỗi nhưng 1.1.1.1/8.8.8.8 phân giải đúng. Người dùng chọn chỉ đổi Secure DNS trong Chrome qua `chrome://settings/security`, không đổi DNS Wi-Fi. Kiểm tra trực tiếp URL tile sau khi đổi rồi quay lại form. Regression dùng tile/API fixture đã PASS cả lỗi→retry→giữ tọa độ; không thay xác nhận provider thật hoặc lưu vào DB.
+
+**Quyết định hiện hành 29/10:** tiếp tục phát triển/test trên TransConnectPhase1Dev; TransConnectDb đã được backup rồi clear dữ liệu test, giữ schema và lịch sử migration. Trong Development, cấu hình ứng dụng chỉ lấy từ appsettings.json + appsettings.Development.json, không nhận User Secrets/env/CLI ghi đè. Helper migration không gán connection string qua env; launcher không còn -EmailProvider. Sửa trực tiếp file Development để chọn DB/Email, giữ file local bị ignore. Dòng helper completed vẫn cần đối chiếu đúng server/DB, không tự bàn giao phần mới sang DB gốc.
+
+**Cập nhật setup 29/10:** helper migration đã thêm forced NuGet restore trước build, xử lý `obj` còn trỏ cache `CodexSandboxOffline` làm MSB3106/CS0006 trên terminal của người dùng. Lượt lỗi đó dừng ở build, chưa bắt đầu migration theo log. DB phát triển hiện chọn TransConnectPhase1Dev và DB nguồn VieGoLocationSource_Dev; xem kết quả audit/clear mới nhất trong tracker. Không coi bản sửa helper là đã nghiệm thu nghiệp vụ.
+
+Code Locations có BE, Customer và Partner/Admin web; chưa có xác nhận nghiệm thu SQL Server hoặc tiles trên thiết bị thật. Setup chi tiết, clone/import nguồn và cấu hình provider tại [locations-setup](reference/locations-setup.md); contract API-LOC-001–020 tại [API Locations](../../TransConnect-Docs/05-api/endpoints/locations-endpoints.md). Giữ bốn terminal/URL nền tảng bên dưới. Không cần khởi động Driver để test Locations.
+
+| Ca | Cách chạy | Kỳ vọng |
+|---|---|---|
+| TC-LOC-M01 — dữ liệu toàn quốc | Tại Backend, chạy Get-LocationDataset.ps1 theo setup, kiểm tra manifest. Xác định DB Development/test, dừng Host, chạy Update-DevelopmentDatabase.ps1 với `-IncludeLocations` rồi bật lại BE. Admin gọi `POST /locations/admin/datasets/import` bằng payload đã tạo, gọi lại cùng body | Chuẩn bị file cho 34/3321 của bản pin; import lần hai trả cùng datasetId, không nhân bản. `GET /locations/dataset` trả v5.2.0 và checksum; API provinces có 34 bản ghi, wards lọc đúng tỉnh, mã đầu 0 giữ nguyên. Không tự có điểm vận tải |
+| TC-LOC-M02 — Customer chính chủ | Customer → Tài khoản → Địa chỉ đã lưu → Thêm địa chỉ; chọn tỉnh/phường, nhập chi tiết, để trống tọa độ và lưu. Xem/sửa. Dùng Customer B gọi list/detail/PUT/DELETE địa chỉ của A qua Swagger | Lưu/mở lại được địa chỉ chưa có ghim, ghi chưa xác nhận. B không list được, truy cập ID của A trả 404; danh mục shared không có địa chỉ riêng. Ngừng dùng bằng UI gỡ khỏi sổ địa chỉ |
+| TC-LOC-M03 — map/xác nhận | Thử địa chỉ tại các vùng Bắc/Trung/Nam và một xã/đặc khu trong danh mục. Chạm/kéo ghim, xác nhận, lưu, mở lại; đổi tọa độ/địa chỉ, sau đó chỉ đổi nhãn. Chặn riêng request tile trong trình duyệt để thử nhập tay. Khi Console có `contentscript.js`/`ObjectMultiplex`/`runtime.lastError`, bấm source để phân biệt URL `chrome-extension://` với source web; thử profile Guest. Kiểm tra Network của tile riêng, gồm lỗi DNS `ERR_NAME_NOT_RESOLVED` | Ghim mở lại đúng lat/lon; mặc định chưa xác nhận, đổi vị trí yêu cầu xác nhận lại. Chỉ đổi nhãn giữ xác nhận đã lưu. Tile lỗi giữ form, nhập tay và xác nhận vẫn lưu được; attribution/link hiển thị. Không đổi tỉnh/phường tự động từ tâm bản đồ. Không dùng lỗi extension để kết luận Leaflet lỗi; regression `npm run check:ui -- --locations` dùng API/tile fixture, `--live-tiles` mới thử provider thật, cả hai không thay nghiệm thu lưu BE/DB |
+| TC-LOC-M04 — Owner/Admin | Partner → chọn tổ chức đã duyệt với Owner → Địa điểm → Thêm địa điểm, điền tọa độ/xác nhận/lý do. Admin → Địa điểm → xem ghim đề xuất rồi duyệt/từ chối có lý do. Thử tạo trực tiếp bằng Admin | Pending/Rejected không xuất hiện shared. Approved xuất hiện với version 1; Owner không ghi trực tiếp bản công khai. Rejected gửi lại bằng Thêm địa điểm tạo request ID mới. Admin công bố trực tiếp có lịch sử, Customer/Manager không có quyền này |
+| TC-LOC-M05 — sửa/ngừng dùng/lịch sử | Owner gửi yêu cầu sửa cùng điểm hoặc ngừng dùng; kiểm tra public trước/sau Admin duyệt. Admin có thể sửa/ngừng dùng trực tiếp có lý do, mở Lịch sử. Cổng/điểm phục vụ khác dùng Thêm địa điểm | Pending không đổi bản công khai. Duyệt tạo version mới, bản cũ bất biến. Điểm ngừng dùng không còn ở shared nhưng Admin vẫn thấy và đọc lịch sử; điểm mới có ID mới. Chưa có ca E2E Trip/Booking |
+| TC-LOC-M06 — xung đột/validation | Hai tab Admin mở cùng điểm version N; một tab lưu trước, tab kia gửi version N. Thử duyệt một đề xuất Update dựa trên N sau khi điểm đã đổi. Customer thử chỉ một tọa độ, latitude 91, longitude 181 hoặc phường sai tỉnh | Trả 409 cho dữ liệu cũ, không ghi đè hoặc thêm lịch sử sai; đề xuất lỗi thời vẫn Pending. Validation trả 400 theo field. Customer nhập 0/0 được chấp nhận về miền giá trị, không có nghĩa đã xác minh địa điểm thực tế |
+
+Chi tiết thao tác API cần nhớ: Customer archive dùng `DELETE /locations/my-addresses/{id}?version=N`; Admin archive dùng JSON `{ "version": N, "reason": "Lý do ngừng dùng" }`. Duyệt dùng `POST /locations/admin/requests/{id}/review` với `{ "version": N, "approve": true, "reason": "Đã đối chiếu vị trí" }`. Lấy UUID/mã/version từ response thực tế, không tự điền ID hoặc owner/actor. Tiến độ và kết quả chạy thực tế chỉ ghi trong tracker; bảng này là hướng dẫn, không là bằng chứng đã pass.
+
 | Phần | Chức năng đã triển khai | Nơi có thể test |
 |---|---|---|
+| Locations | Địa giới có phiên bản/import, địa chỉ riêng, Owner đề xuất/Admin quản điểm chung, bản đồ ghim/xác nhận/nhập tay và lịch sử | Customer: Tài khoản → Địa chỉ đã lưu; Admin: /admin/locations; Owner: workspace tổ chức → Địa điểm; cần chuẩn bị DB/import theo setup |
 | Tài khoản | Đăng ký Customer/Operator, đăng nhập theo nhóm, xác thực/gửi lại OTP email, quên/reset mật khẩu, refresh/logout, đọc phiên | Customer app, Driver app, web và Swagger; Google qua API khi có cấu hình OAuth |
 | Hồ sơ tài khoản | Sửa tên/SĐT, đổi mật khẩu hiện tại, upload avatar Cloudinary | Customer/Driver phần tài khoản, Partner web, Swagger |
 | Quản trị tài khoản | Danh sách/phân trang, chi tiết, khóa/mở có lý do, lịch sử; quyền cao hơn khi quản InternalAdmin | Admin web và Swagger |
@@ -29,13 +98,29 @@ Không nằm trong phạm vi test chức năng hoàn chỉnh: Trip, tìm chuyế
 
 | Hạng mục | Cần chuẩn bị | Hiện trạng đã ghi nhận |
 |---|---|---|
-| SQL Server + .NET 10 | Database Development, connection string/JWT local, apply migration | Đã xác nhận MINHKIEN1 Running và TCP 1433 mở; probe ODBC/.NET vẫn lỗi TLS trong phiên agent, chưa apply migration mới |
+| SQL Server + .NET 10 | Database Development, connection string/JWT local, apply migration | Người dùng xác nhận script migration thành công 22/10; BE/Swagger chạy được. Agent chưa đối chiếu DB trực tiếp |
 | SMTP | Hộp thư test có thể đọc OTP và token lời mời | Chưa nghiệm thu gửi/nhận thật; không dựa vào file thư đã bị dọn sau gửi |
-| Cloudinary | CloudName, ApiKey, ApiSecret phía BE | Chưa cấu hình ở lần kiểm tra gần nhất; avatar cần cấu hình để test thành công |
+| Cloudinary | CloudName, ApiKey, ApiSecret phía BE | Người dùng đã điền cấu hình 22/10; chưa test avatar/upload |
 | S3 demo | Storage/bucket private hoạt động, ComplianceDemo bật trong Development | Cờ demo đã bật ở lần kiểm tra gần nhất; chưa nghiệm thu storage thật |
 | Google | ClientId và Google ID token hợp lệ | Tùy chọn; FE Google chưa phải luồng hoàn thiện |
 
 Nhập secret trong `TransConnect.Host/appsettings.Development.json` bị Git ignore hoặc biến môi trường; không ghi secret vào file này/FE/chat. Mẫu tại [appsettings.Development.example.json](../TransConnect.Host/appsettings.Development.example.json). Hướng dẫn [email](reference/email-and-notification.md), [storage và Cloudinary](reference/compliance-demo-setup.md).
+
+### Script cập nhật DB và kiểm tra kết nối
+
+`scripts/Update-DevelopmentDatabase.ps1` đọc `TransConnect.Host/appsettings.Development.json`, dùng `sqlcmd` probe DB được cấu hình. `-ProbeOnly` chỉ chạy `SELECT 1 AS ConnectionProbe`, trả 1 và exit code 0 khi kết nối được; không chạy preflight/build/migration, không chứng minh schema đúng hoặc nghiệp vụ pass. Script yêu cầu file JSON local có connection string; probe không lấy thay thế từ biến môi trường. Khi migrate, EF/Host có thể nhận override cấu hình, nên phải bảo đảm target nhất quán.
+
+Chỉ kiểm tra kết nối (có thể chạy riêng, không cần restore):
+
+```powershell
+Set-Location 'C:\Users\PC\Desktop\CNTTB\doantotnghiep\TransConnect-Backend'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Update-DevelopmentDatabase.ps1 -ProbeOnly
+$LASTEXITCODE
+```
+
+Bỏ `-ProbeOnly` sẽ preflight dữ liệu, build `--no-restore`, rồi `database update` lần lượt Identity → Notification → Operator → Compliance nếu bật trong config hoặc có `-IncludeComplianceDemo`. Flag này chỉ thêm migration Compliance, không bật tính năng demo. Build cần SDK .NET 10 và `tools/dotnet-ef.exe` dưới SDK được chọn; lệnh đầy đủ bên dưới dùng SDK local đã biết. Script không chạy test nghiệp vụ. Lỗi giữa các module không rollback các module đã thành công: kiểm tra history trước retry.
+
+Người dùng đã báo migration thành công 22/10; không cần chạy lại nếu code/migration và DB đích chưa đổi. Tiếp tục test các mục tài khoản/onboarding/SMTP/avatar/giấy demo bên dưới. Nếu cần kiểm tra schema, xem migration history trên đúng DB trong SSMS và đối chiếu [danh mục migration](../../TransConnect-Docs/04-database/phase-1-entities-and-relationships-review.md#current-schema-22-10); không gửi connection string/mật khẩu.
 
 ### Chạy một BE và ba FE bằng bốn terminal PowerShell
 
@@ -50,7 +135,7 @@ $env:DOTNET_ROOT_X64 = $env:DOTNET_ROOT
 $env:PATH = "$env:DOTNET_ROOT;$env:PATH"
 & "$env:DOTNET_ROOT\dotnet.exe" restore .\TransConnect.sln
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Update-DevelopmentDatabase.ps1 -DotnetPath C:\Users\PC\.dotnet\dotnet.exe -ProbeOnly
-# Chỉ chạy dòng tiếp theo khi probe thành công:
+# Chỉ cập nhật khi cần áp migration còn thiếu; đã thành công và code không đổi thì không cần chạy lại:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Update-DevelopmentDatabase.ps1 -DotnetPath C:\Users\PC\.dotnet\dotnet.exe -IncludeComplianceDemo
 ```
 
@@ -389,6 +474,14 @@ TRX nằm trong Backend `.codex-build/test-results/`. Lượt viết lại tài 
 
 ## 8. Ghi nhận lượt test của bạn
 
+**Delta email/Android — cách chạy cập nhật 29/10:** trước đây phát hiện provider File cả trong cấu hình chung và User Secrets; SMTP STARTTLS/auth đã kiểm tra thành công bằng cấu hình local, chưa chứng minh thư đến mailbox. Hiện sửa Email:Provider=Smtp trong appsettings.Development.json, dừng BE rồi chạy `powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1` từ Backend. Không dùng -EmailProvider hoặc User Secrets để ghi đè. Khi BE sẵn sàng, xin mã mới một lần từ FE, đợi worker (mặc định 15 giây), kiểm tra log SMTP và Inbox/Spam; xác minh bằng mã mới. Không dùng lại mã đã qua sink hoặc gọi resend liên tục. Ghi kết quả giao thư và verify-email riêng; chưa Accepted.
+
+Android: ADB online/boot hoàn tất tại lúc agent kiểm tra, tái hiện SurfaceSyncGroup timeout khi đưa Customer lên foreground; chưa tái hiện được đen toàn màn hình/mất ADB. Thực hiện Cold Boot trước, giữ dữ liệu AVD; nếu còn đơ thử Software graphics ở lần khởi động tiếp. Hướng dẫn tại Customer README. Xác nhận thao tác được qua nhiều lần chuyển nền/mở lại và không mất kết nối; chưa có bằng chứng sửa dứt điểm lỗi này.
+
+Bổ sung cùng lượt: reboot Android guest thành công; reboot và tắt Impeller riêng lẻ vẫn timeout lúc mở. Sau khi thêm Flutter software rendering, UI hiện và thao tác Home → Orders được. Khi chạy lại bằng Flutter dùng `--no-enable-impeller --enable-software-rendering`; không thay cấu hình renderer production. Chưa xác định nguyên nhân gốc hoặc chứng minh ổn định dài hạn. Probe localhost:5267 không kết nối được nên chưa test lại API/email E2E; khởi động BE theo lệnh trên trước.
+
+**Đã ghi nhận 22/10/2026 — FND-00, theo người dùng:** script báo Development migrations completed; BE/Swagger chạy được; Customer/Driver chạy trên máy ảo. Cloudinary đã điền cấu hình. SMTP, Cloudinary upload và storage giấy demo chưa test; Management chưa có báo cáo. Chưa suy ra login/restore/nghiệp vụ đã pass. Bằng chứng ở [tracker](../../TransConnect-Docs/00-project/progress-tracker.md#fnd-00-user-test-22-10). Tạm dừng chờ người dùng test tiếp ngày mai (23/10) hoặc khi quay lại; chưa nghiệm thu toàn gói.
+
 - Ngày, môi trường và phiên bản code:
 - Nhóm tài khoản/FE đã thử:
 - Các mục/bước đã pass:
@@ -397,3 +490,21 @@ TRX nằm trong Backend `.codex-build/test-results/`. Lượt viết lại tài 
 - Kết luận nghiệm thu: **CHƯA XÁC NHẬN**.
 
 Sau mỗi lượt, ghi kết quả xác nhận vào [tracker](../../TransConnect-Docs/00-project/progress-tracker.md). Giữ file này làm hướng dẫn hiện hành và cập nhật tại chỗ khi chức năng thay đổi.
+
+## Chọn ca test theo nhánh/gói
+
+Theo [roadmap](../../TransConnect-Docs/00-project/roadmap.md), mỗi lượt ghi mã gói, nhánh/base SHA và bộ SHA BE/FE trong tracker; chọn ID E2E/API liên quan ở file này làm test delta. Không yêu cầu chạy toàn bộ sau thay đổi tài liệu/PR template. FND-00 phần workflow chỉ kiểm tra cấu hình/link; smoke DB/FE sẽ thực hiện riêng khi môi trường đủ. Câu hỏi gắn nhánh tại Q&A, không tạo file test thứ hai.
+
+## LOC-SEARCH-03 / FE-APPS-06 — tìm địa điểm và app, 01/11
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-PLACE-M01 | Đăng nhập Management, mở thêm điểm, gõ tên POI rồi bấm tìm | Gõ chưa gửi request; bấm/Enter mới gửi `/locations/place-search`; nguồn OSM hiển thị |
+| TC-PLACE-M02 | Chọn kết quả, kiểm tra tọa độ/ghim, tỉnh/phường, xác nhận | Điền đúng cặp lat/lon; không tự chọn mã địa giới hoặc duyệt điểm; tọa độ mới cần xác nhận lại |
+| TC-PLACE-M03 | Thử truy vấn không có kết quả, provider ngắt và nhiều người tìm đồng thời | Rỗng phân biệt lỗi; 429 có thể thử lại; 503 cho phép chọn ghim/nhập tay; không mất form |
+| TC-PLACE-M04 | Customer/Driver mở Địa điểm, tìm theo tên/địa chỉ, xem chi tiết | Chỉ điểm công bố từ backend; phân trang đúng; logout/đổi phiên không phục hồi kết quả cũ |
+| TC-PLACE-M05 | Từ chi tiết mở Google Maps, Chỉ đường, Ứng dụng khác | URL dùng đúng cặp tọa độ; geo không mở được thì thử HTTPS; không có tọa độ thì không mở vị trí giả |
+| TC-PLACE-M06 | Customer thêm địa chỉ, tìm POI, sửa ghim/địa chỉ, lưu | Dữ liệu riêng chính chủ; chọn kết quả không tự xác nhận; không gửi field hồ sơ riêng tới provider |
+| TC-PLACE-M07 | Android điện thoại/màn hình rộng, chữ lớn, giao diện tối | Navigation bar/rail phù hợp; chữ/nút không tràn; Back về danh sách. iOS và thiết bị thật kiểm tra riêng |
+
+`tool/preview.dart` của mỗi app là entrypoint fixture riêng, không được main.dart import. Dữ liệu minh họa chỉ phục vụ kiểm tra hình ảnh, không phải dữ liệu công bố/điểm hợp lệ cho chuyến. Bằng chứng tự động/native và giới hạn live tại tracker.

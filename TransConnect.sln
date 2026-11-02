@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransConnect.Modules.Operat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransConnect.Modules.Compliance", "TransConnect.Modules.Compliance\TransConnect.Modules.Compliance.csproj", "{D04A4766-A6ED-4A6A-B061-A3306AC7661A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransConnect.Modules.Locations", "TransConnect.Modules.Locations\TransConnect.Modules.Locations.csproj", "{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -139,6 +141,18 @@ Global
 		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x64.Build.0 = Release|Any CPU
 		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x86.ActiveCfg = Release|Any CPU
 		{D04A4766-A6ED-4A6A-B061-A3306AC7661A}.Release|x86.Build.0 = Release|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Debug|x64.Build.0 = Debug|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Debug|x86.Build.0 = Debug|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Release|x64.ActiveCfg = Release|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Release|x64.Build.0 = Release|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Release|x86.ActiveCfg = Release|Any CPU
+		{4AA8CBC8-8352-4BD5-802B-F6C2C467E928}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

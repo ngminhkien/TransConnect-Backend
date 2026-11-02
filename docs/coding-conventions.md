@@ -37,6 +37,7 @@ Mục tiêu: code sạch, thống nhất giữa các tầng, dễ mở rộng kh
   - `ServiceUnavailableAppException` → 503 (ví dụ kho file tạm không truy cập được; không kèm lỗi SDK/credentials trong response)
   - Exception khác (không lường trước) → 500, log qua `ILogger`, **không** trả message chi tiết ra ngoài.
 - Khi thêm loại lỗi mới: thêm exception mới kế thừa `AppException` trong `Base`, thêm 1 case trong `AppExceptionHandler` — không tạo cơ chế xử lý lỗi song song ở nơi khác.
+- Client hủy request được xử lý trước request logger trả lỗi: `ClientRequestCancellationMiddleware` nằm bên trong Serilog, chỉ coi là cancellation khi `RequestAborted` đã hủy. Host cung cấp bộ nhận diện SqlClient (mọi SqlError đều Number=0, State=0, Class=11); timeout/lỗi SQL khác vẫn propagate/log. JWT chỉ bỏ kết quả xác thực của request đã hủy, guard sau Authentication dừng trước Authorization/controller; không nhận quyền JWT cũ thay lookup DB. Response writer/status pages/error handler không ghi body vào kết nối đã hủy; 499 chỉ phục vụ theo dõi nội bộ. Không bắt mọi SqlException, so khớp message bản địa hóa, bỏ token cancellation hoặc tắt kiểm tra quyền để giảm log.
 
 ## DTO & validation
 
