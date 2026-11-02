@@ -95,10 +95,10 @@ Toàn bộ nằm ở section `Email`. Phần nhạy cảm (`Smtp.User`, `Smtp.Pa
 
 | Giá trị | Hành vi |
 |---|---|
-| `"File"` (mặc định) | **Không gửi thật**, ghi file `.html` vào `TransConnect.Host/sent-emails/`. Mở bằng trình duyệt để xem. |
+| `"File"` (mặc định) | **Không gửi thật**, sink Development tạo rồi xóa bản sao nội bộ. Dùng hộp thư SMTP test để đọc OTP. |
 | `"Smtp"` | Gửi thật qua MailKit. |
 
-Luôn để `"File"` khi phát triển: tránh spam hộp thư thật và tránh đốt hạn mức gửi của Gmail.
+Dùng SMTP test local khi cần đọc thư. File chỉ là sink, không còn giữ nội dung để mở xem sau gửi.
 
 ### Gmail
 
@@ -183,7 +183,7 @@ await emailQueue.EnqueueAsync(new EmailRequest
 }, cancellationToken);
 ```
 
-4. Test bằng `Provider: "File"` rồi mở file HTML sinh ra để kiểm tra.
+4. Test bằng hộp thư SMTP test rồi mở thư trong giao diện hộp thư để kiểm tra.
 
 Không cần đụng vào worker, provider hay `Program.cs`.
 
@@ -241,3 +241,34 @@ Password mà không phải chạy qua luồng đăng ký:
 ```
 POST /dev/test-email?to=abc@example.com
 ```
+
+
+## Vòng đời email triển khai 19/10/2026 (R-15)
+
+Mục này thay các mô tả lịch sử về worker/File chưa retention ở trên. EmailRequest mang SourceType/SourceId/DeliverBefore cho OTP và lời mời. Identity/Operator triển khai IEmailDeliveryGuard trong module sở hữu dữ liệu; Notification không reference DbContext/entity module khác. OTP được enqueue với ID đúng lần cấp mã, không tra "mã mới nhất" sau khi cấp.
+
+EmailDispatcher lấy danh sách đến lịch rồi claim từng row Pending bằng UPDATE có điều kiện, DispatchLease và ProcessingStartedAt; trước provider kiểm tra nguồn và hạn hiện tại. Source không hợp lệ hoặc email thường đủ 24 giờ thì Failed với mã SourceInactiveOrExpired, dừng retry và xóa body. Giữ enum Pending=0/Sending=1/Sent=2/Failed=3. Lỗi provider chỉ lưu tên loại lỗi; SMTP 5xx hoặc hết số lần thử thì kết thúc. Cancellation trả row về Pending nếu còn lease; stuck reclaim thay lease khiến worker cũ không ghi đè kết quả worker mới.
+
+Sau Sent hoặc kết thúc vĩnh viễn: xóa BodyHtml/BodyText, ghi TerminalAt/BodyPurgedAt, bỏ lịch retry và lease. Cleanup theo batch xử lý cả dữ liệu xóa mềm và email chưa đến lịch nhưng nguồn đã hết hiệu lực; không purge row Sending. Metadata OTP (kể cả lỗi vĩnh viễn) giữ 7 ngày, loại khác 30 ngày tính từ TerminalAt; đúng mốc được giữ đến lượt sau mốc. Dữ liệu legacy Sent dùng SentAt, legacy Failed chưa biết thời điểm kết thúc thì bắt đầu chính sách ở lúc cleanup; không bịa ngày kết thúc lịch sử. Không reset TerminalAt mỗi lượt.
+
+File provider xóa file vừa tạo trong finally; cleanup chỉ xóa các file top-level đúng mẫu filename của provider cũ/mới, không xóa file khác hoặc đi qua symbolic link. Hộp thư nhận thư nằm ngoài bản sao ứng dụng kiểm soát. Cấu hình SMTP test local mẫu (đặt trong cấu hình Development của máy, không chép đè secrets hiện có):
+
+```json
+{
+  "Email": {
+    "Provider": "Smtp",
+    "From": { "Address": "test@transconnect.local", "DisplayName": "TransConnect Test" },
+    "Smtp": {
+      "Host": "localhost", "Port": 1025,
+      "Authenticate": false, "UseTls": false
+    }
+  },
+  "Maintenance": { "PollSeconds": 3600, "BatchSize": 200, "AuditRetentionMonths": 6 }
+}
+```
+
+Cần một dịch vụ hộp thư test đang chạy ở cổng đã cấu hình; code không tự khởi chạy Mailpit/MailHog hoặc gửi thư thật. SMTP ngoài loopback tiếp tục yêu cầu TLS và credentials. File sink không giao thư đến hộp thư.
+
+Trước apply migration 20261019112636: dừng host/worker cũ. Email OTP/lời mời legacy thiếu SourceId bị dừng và xóa body, người dùng xin mã/lời mời mới. Không đoán SourceId từ body/token. Rollback schema không phục hồi nội dung đã xóa. Chưa nghiệm thu SQL Server/mailbox live.
+
+Giới hạn: SMTP và DB không có transaction chung. Crash sau SMTP gửi thành công trước khi lưu DB có thể tạo mail trùng; lease không bảo đảm exactly-once. Nguồn bị thu hồi khi thư đã in-flight/đã giao không thể thu hồi thư từ hộp thư nhận. Worker kiểm tra nguồn trước mỗi lần gọi provider.

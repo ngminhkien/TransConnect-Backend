@@ -6,6 +6,8 @@ namespace TransConnect.Modules.Compliance.Entities;
 public sealed class DemoDocument : BaseEntity
 {
     public Guid AccountId { get; set; }
+    public Guid? ProfileDocumentId { get; set; }
+    public int? VersionNumber { get; set; }
     public string Bucket { get; set; } = "";
     public string ObjectKey { get; set; } = "";
     public string ContentType { get; set; } = "";

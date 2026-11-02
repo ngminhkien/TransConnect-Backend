@@ -32,12 +32,12 @@ public class SmtpEmailProvider(
 
         using var client = new SmtpClient();
 
-        var socketOptions = _options.Smtp.UseStartTls
-            ? SecureSocketOptions.StartTls
-            : SecureSocketOptions.SslOnConnect;
+        var socketOptions = !_options.Smtp.UseTls ? SecureSocketOptions.None
+            : _options.Smtp.UseStartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.SslOnConnect;
 
         await client.ConnectAsync(_options.Smtp.Host, _options.Smtp.Port, socketOptions, cancellationToken);
-        await client.AuthenticateAsync(_options.Smtp.User, _options.Smtp.Password, cancellationToken);
+        if (_options.Smtp.Authenticate)
+            await client.AuthenticateAsync(_options.Smtp.User, _options.Smtp.Password, cancellationToken);
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(quit: true, cancellationToken);
 

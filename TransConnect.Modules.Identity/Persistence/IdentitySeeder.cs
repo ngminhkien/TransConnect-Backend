@@ -16,6 +16,7 @@ public static class IdentitySeeder
         "roles.manage",
         "permissions.manage",
         "users.manage",
+        "admins.manage",
         "organizations.manage"
     ];
 

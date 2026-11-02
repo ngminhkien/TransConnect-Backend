@@ -31,6 +31,9 @@ public class EmailSenderOptions
 
 public class SmtpOptions
 {
+    // Plain/unauthenticated SMTP is restricted to loopback test mailboxes by startup validation.
+    public bool Authenticate { get; set; } = true;
+    public bool UseTls { get; set; } = true;
     public string Host { get; set; } = "smtp.gmail.com";
     public int Port { get; set; } = 587;
     public string User { get; set; } = string.Empty;
@@ -40,6 +43,9 @@ public class SmtpOptions
 
     // Gmail cổng 587 dùng STARTTLS. Nếu đổi sang cổng 465 thì đặt false (SSL ngầm định).
     public bool UseStartTls { get; set; } = true;
+
+    public bool IsLoopback => Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+        || (System.Net.IPAddress.TryParse(Host, out var ip) && System.Net.IPAddress.IsLoopback(ip));
 }
 
 public class EmailWorkerOptions

@@ -1,4 +1,16 @@
-# TransConnect Backend
+﻿# TransConnect Backend
+
+## Nền tảng người dùng 20/10
+
+Đã có sửa tài khoản/đổi mật khẩu/avatar Cloudinary; Admin account list/detail/khóa/mở/audit với users.manage và admins.manage; account/RBAC đọc lại trên mỗi JWT request. Organization nộp bằng Operator xác thực, Applicant nộp lại và nhận Owner khi duyệt; hồ sơ cũ/nộp thay giữ invitation. Driver tự nộp lại Rejected; có ProfileReviews và API context/list/search cho FE. Migration Operator mới: 20261020111920_ApplicantOnboardingAndReviewHistory; chưa apply trong phiên agent vì probe SQL TLS/SSPI thất bại.
+
+Cloudinary secret chỉ ở cấu hình local/env; mẫu key rỗng trong Host/appsettings.Development.example.json. [Test hiện hành](docs/current-test.md) có request/ACL/luồng ba frontend; [tracker](../TransConnect-Docs/00-project/progress-tracker.md#closure-implementation-20-10) giữ bằng chứng/giới hạn. Các ghi chú đợt 3–4 dưới là lịch sử; UI mới đã nối, chưa nghiệm thu E2E live.
+
+## Cập nhật triển khai 19/10 — đợt 3–4
+
+Đã thêm hồ sơ tối thiểu Organization/Driver/Vehicle, snapshot liên hệ Driver khi kết thúc cộng tác và đúng hai giấy giả DriverLicense/VehicleRegistration có version/phân quyền theo Owner + engagement/scope tổ chức. API mới và request mẫu ở [test hiện hành](docs/current-test.md). File mới không truy cập được qua endpoint demo owner-only cũ; simulate/review vẫn NOT_VERIFIED, không thay ReviewStatus. Bộ Full và lifecycle giấy thật chưa triển khai; UI đợt 5 chưa nối.
+
+Hai migration `20261019164634_MinimalProfilesAndEngagementSnapshots`, `20261019164639_ProfileDocumentDemoVersions` chưa apply. SQL probe cả ODBC và .NET vẫn lỗi TLS/SSPI trong phiên agent sau khi DB đã mở. Helper `scripts/Update-DevelopmentDatabase.ps1` chạy probe/preflight trước update; dừng host/worker cũ, dùng DB Development, kiểm tra migration history nếu thất bại giữa các module. Lượt test cuối hoàn tất 20/10: 144/144 pass, 0 skip, TRX `.codex-build/test-results/stage3-4-final.trx` (Backend). Chi tiết tại tracker; không suy ra nghiệm thu DB/storage thật.
 
 
 ## Tài liệu đang sử dụng
@@ -68,6 +80,16 @@ docs/
 - EF Core CLI khớp runtime: `dotnet tool install --global dotnet-ef` (hoặc `dotnet tool update --global dotnet-ef`)
 
 ## Setup lần đầu
+
+**Chạy bằng PowerShell (từ thư mục `TransConnect-Backend`):**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1
+```
+
+Script chọn SDK tương thích `global.json` từ PATH hoặc `%USERPROFILE%\.dotnet`, đặt môi trường .NET cho tiến trình chạy và khởi động profile `http`. Swagger: http://localhost:5267/swagger. Dừng bằng Ctrl+C. Có thể truyền `-DotnetPath <đường-dẫn-dotnet.exe>` hoặc `-NoRestore` khi package đã restore. SDK 10.0.302 đã có ở thư mục người dùng trên máy phát triển; không cần hạ `global.json` xuống SDK 8/9. Host Development dùng cấu hình local và tự migrate/seed DB như luồng hiện có.
+
+Kiểm chứng 17/10/2026: script chọn SDK 10.0.302 và build Host thành công với `-NoRestore`; chưa xác nhận HTTP vì kết nối SQL Server trong môi trường agent báo không hỗ trợ encryption.
 
 **1. Tạo `TransConnect.Host/appsettings.Development.json`.**
 
@@ -213,3 +235,10 @@ buộc** — thiếu nó EF không biết chọn DbContext nào.
 > Sau khi `migrations add`, phải `dotnet build` lại trước khi chạy `dotnet run --no-build`,
 > nếu không app sẽ báo `PendingModelChangesWarning` vì binary chưa chứa migration mới.
 # TransConnect-Backend
+
+
+### Nền tảng đợt 1–2 (19/10/2026)
+
+Đợt 1 đã có guard Owner/Driver tách tài khoản, revoke metadata, lịch sử gỡ xe có lý do và ràng buộc DB. Đợt 2 có audit RBAC/RequestId/retention 6 tháng, kiểm tra tham chiếu chỉ báo cáo và retention email theo nguồn. Xem [test hiện hành](docs/current-test.md), [email và hộp thư test](docs/reference/email-and-notification.md), [tiến độ](../TransConnect-Docs/00-project/progress-tracker.md#implementation-stages-19-10).
+
+Trước khởi động Host Development với DB đang dùng: dừng worker cũ, chạy scripts/Check-FoundationData.sql trên DB test và kiểm tra migrations mới. Migration email dừng OTP/lời mời legacy không có ID nguồn, dọn nội dung và yêu cầu cấp lại; không tự phục hồi được body bằng Down. Provider File không giữ email để đọc OTP nữa; dùng hộp thư SMTP test. Chưa có nghiệm thu migration/SMTP/storage live từ môi trường agent.

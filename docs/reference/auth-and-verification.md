@@ -6,7 +6,7 @@ Register/login/google/forgot/reset/verify/resend có accountGroup (mặc định
 
 Tất cả truy vấn email/Google/OTP đều theo nhóm; refresh theo AccountId của phiên, không chuyển nhóm. Logout chỉ thu hồi token của current account. Google yêu cầu email đã được Google xác minh và không ghi đè GoogleId khác đã liên kết.
 
-Phân quyền tổ chức nằm ở Operator, đọc account/membership còn hoạt động từ DB mỗi request; Owner/Manager/Dispatcher không phải role RBAC toàn hệ thống. Xem [luồng test giai đoạn 1](../current-test.md#sql-concurrency). RBAC toàn hệ thống bên dưới vẫn dùng claim JWT; thay đổi claim chỉ có hiệu lực sau token mới.
+Phân quyền tổ chức nằm ở Operator, đọc account/membership còn hoạt động từ DB mỗi request; Owner/Manager/Dispatcher không phải role RBAC toàn hệ thống. Từ quyết định 20/10, RBAC toàn hệ thống có hiệu lực ngay: Host OnTokenValidated đọc account và thay role/permission claim từ DB trên từng request. Xem [luồng test](../current-test.md).
 
 Tài liệu này mô tả các luồng đăng nhập, xoay vòng token, xác thực email và đặt lại mật khẩu —
 kèm lý do đằng sau từng quyết định bảo mật, để người sửa sau không vô tình gỡ mất chúng.
@@ -14,22 +14,22 @@ kèm lý do đằng sau từng quyết định bảo mật, để người sửa
 ## Tổng quan
 
 - **Không dùng ASP.NET Core Identity.** RBAC (Role - Permission) tự xây trong module Identity.
-- Access token là **JWT** mang sẵn claim role + permission → không query DB mỗi request.
+- Access token là **JWT**; sau xác minh chữ ký/hạn, mỗi request đọc account DB và tải lại role/permission. Account khóa/xóa trả 401; permission bị gỡ trả 403 ở request tiếp theo.
 - Refresh token lưu **SHA-256** trong DB, có **xoay vòng và phát hiện tái sử dụng**. Client vẫn nhận token ngẫu nhiên 64 byte ở dạng Base64.
 
 ## Phân quyền
 
-Permission được nhét thẳng vào JWT lúc phát token. `RequirePermissionAttribute`
-(`TransConnect.Common/Auth/`) đọc claim, không query DB.
+JWT giữ claim lúc phát để tương thích. LiveAccountClaims thay claim trên principal bằng RBAC DB trước khi RequirePermissionAttribute/CurrentUser sử dụng. Không dùng blacklist JwtId; mất DB không được dựa vào quyền JWT cũ. API Admin account cần InternalAdmin + users.manage; target InternalAdmin cần admins.manage.
 
-**Đánh đổi cần biết**: thu hồi quyền trong DB **không có hiệu lực ngay** với token đang sống —
-chỉ áp dụng từ lần refresh/đăng nhập kế tiếp. Access token mặc định sống 60 phút
-(`Jwt:AccessTokenMinutes`). Muốn thu hồi tức thì thì phải thêm blacklist theo `JwtId`, đổi lại
-mỗi request phải tra cache/DB.
+PUT /auth/me chỉ sửa tên hiển thị/SĐT Customer/Operator, không đồng bộ Driver/snapshot. POST /auth/change-password: sai currentPassword trả 400 theo field để client không hiểu nhầm JWT hết hạn; Google-only 409 vì đặt mật khẩu đầu tiên hoãn. Hash/revoke refresh dùng cùng khóa User/transaction. Login đọc lại và kiểm tra hash trong khóa User trước phát token, tránh dùng mật khẩu vừa bị thay. Phát token cũng khóa User để không ghi refresh mới sau khóa tài khoản.
+
+POST /auth/me/avatar nhận multipart, kiểm tra 5 MiB/chữ ký PNG/JPEG/WebP, gửi có chữ ký tới Cloudinary và lưu secure_url, không nhận URL tùy ý từ client. Secret chỉ ở cấu hình local/env. Căn cứ [Upload API](https://cloudinary.com/documentation/image_upload_api_reference) và [chữ ký](https://cloudinary.com/documentation/authentication_signatures); chưa nghiệm thu tài khoản Cloudinary thật.
 
 ## Refresh token: xoay vòng + phát hiện tái sử dụng
 
-Mỗi lần refresh, token cũ bị đánh dấu `IsUsed` bằng UPDATE có điều kiện `!IsUsed && !IsRevoked && ExpiresAt > now`; tạo token mới trong cùng transaction. Nếu tạo token mới thất bại, việc dùng token cũ cũng rollback. User không tồn tại, bị xóa mềm hoặc bị khóa trả 401.
+Bổ sung 19/10: có RevokedAt/RevokedReason nullable. Rotation ghi Replaced; replay ghi Replay cho các token chưa thu hồi, logout ghi Logout, reset ghi PasswordChanged. Giữ metadata thu hồi lần đầu; AdminRevoked là mã dự phòng, chưa thêm API. Dữ liệu legacy không được backfill thời điểm/lý do giả.
+
+Mỗi lần refresh, token cũ bị đánh dấu `IsUsed`, `IsRevoked`, `RevokedAt`, `RevokedReason=Replaced` bằng UPDATE có điều kiện `!IsUsed && !IsRevoked && ExpiresAt > now`; tạo token mới trong cùng transaction. Nếu tạo token mới thất bại, việc dùng token cũ cũng rollback. User không tồn tại, bị xóa mềm hoặc bị khóa trả 401.
 
 **Nếu một token đã `IsUsed` bị trình lên lần nữa** → coi như bị đánh cắp → **revoke toàn bộ
 refresh token còn hiệu lực của user đó** (`RevokeAllTokensAsync`), buộc đăng nhập lại trên mọi

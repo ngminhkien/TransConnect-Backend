@@ -9,6 +9,8 @@ public sealed class DemoDocumentConfiguration : IEntityTypeConfiguration<DemoDoc
     public void Configure(EntityTypeBuilder<DemoDocument> builder)
     {
         builder.ToTable("DemoDocuments");
+        builder.HasOne<DemoProfileDocument>().WithMany().HasForeignKey(x => x.ProfileDocumentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => new { x.ProfileDocumentId, x.VersionNumber }).IsUnique().HasFilter("[ProfileDocumentId] IS NOT NULL");
         builder.Property(x => x.Bucket).HasMaxLength(63).IsRequired();
         builder.Property(x => x.ObjectKey).HasMaxLength(200).IsRequired();
         builder.Property(x => x.ContentType).HasMaxLength(100).IsRequired();

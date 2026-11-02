@@ -11,7 +11,7 @@ public class EmailMessageConfiguration : IEntityTypeConfiguration<EmailMessage>
         // NotificationMessage chỉ dùng lại code C#; mỗi kênh map bảng độc lập.
         // Không đưa base vào EF hierarchy để tránh thêm discriminator/bảng chung.
         builder.HasBaseType((Type?)null);
-        builder.ToTable("EmailMessages");
+        builder.ToTable("EmailMessages", t => t.HasCheckConstraint("CK_EmailMessages_Status", "[Status] IN (0, 1, 2, 3)"));
 
         builder.Property(e => e.ToEmail).IsRequired().HasMaxLength(256);
         builder.Property(e => e.ToName).HasMaxLength(200);
@@ -23,6 +23,9 @@ public class EmailMessageConfiguration : IEntityTypeConfiguration<EmailMessage>
         builder.Property(e => e.BodyText).IsRequired();
 
         builder.Property(e => e.LastError).HasMaxLength(2000);
+        builder.Property(e => e.SourceType).HasMaxLength(80);
+        builder.Property(e => e.RetentionCategory).HasMaxLength(20).IsRequired();
+        builder.HasIndex(e => new { e.Status, e.TerminalAt });
 
         builder.Property(e => e.Status).HasConversion<int>();
 

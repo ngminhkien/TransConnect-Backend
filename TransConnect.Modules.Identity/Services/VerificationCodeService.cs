@@ -18,7 +18,10 @@ public class VerificationCodeService(
 
     public int ExpiryMinutes => _options.ExpiryMinutes;
 
-    public async Task<string> IssueAsync(
+    public async Task<string> IssueAsync(Guid userId, VerificationPurpose purpose, CancellationToken cancellationToken = default) =>
+        (await IssueForDeliveryAsync(userId, purpose, cancellationToken)).Code;
+
+    public async Task<IssuedVerificationCode> IssueForDeliveryAsync(
         Guid userId,
         VerificationPurpose purpose,
         CancellationToken cancellationToken = default)
@@ -52,18 +55,19 @@ public class VerificationCodeService(
 
         var code = GenerateCode(_options.CodeLength);
 
-        dbContext.VerificationCodes.Add(new VerificationCode
+        var record = new VerificationCode
         {
             UserId = userId,
             Purpose = purpose,
             CodeHash = passwordHasher.Hash(code),
             ExpiresAt = DateTime.UtcNow.AddMinutes(_options.ExpiryMinutes)
-        });
+        };
+        dbContext.VerificationCodes.Add(record);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return code;
+        return new IssuedVerificationCode(code, record.Id, record.ExpiresAt);
     }
 
     public Task ConsumeAsync(

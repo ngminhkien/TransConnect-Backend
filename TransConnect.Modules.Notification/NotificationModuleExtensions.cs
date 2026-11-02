@@ -32,9 +32,10 @@ public static class NotificationModuleExtensions
                 "Cấu hình Email:Worker không hợp lệ: các giá trị phải dương và backoff tối đa không nhỏ hơn backoff ban đầu.")
             .Validate(o => !string.Equals(o.Provider, EmailProviderNames.Smtp, StringComparison.OrdinalIgnoreCase)
                 || (!string.IsNullOrWhiteSpace(o.Smtp.Host) && o.Smtp.Port is >= 1 and <= 65535
-                    && !string.IsNullOrWhiteSpace(o.Smtp.User) && !string.IsNullOrWhiteSpace(o.Smtp.Password)
+                    && (!o.Smtp.Authenticate || (!string.IsNullOrWhiteSpace(o.Smtp.User) && !string.IsNullOrWhiteSpace(o.Smtp.Password)))
+                    && ((o.Smtp.Authenticate && o.Smtp.UseTls) || o.Smtp.IsLoopback)
                     && System.Net.Mail.MailAddress.TryCreate(o.From.Address, out _)),
-                "Provider Smtp cần Host, Port hợp lệ, User, Password và địa chỉ Email:From:Address hợp lệ.")
+                "Provider Smtp cần cấu hình hợp lệ; chỉ SMTP loopback test được bỏ TLS/xác thực.")
             .ValidateOnStart();
 
         // Chọn đường gửi qua config thay vì #if DEBUG, để đổi được mà không phải build lại.
@@ -53,6 +54,9 @@ public static class NotificationModuleExtensions
         services.AddSingleton<ITemplateRenderer, EmbeddedTemplateRenderer>();
 
         services.AddScoped<IEmailQueue, EmailQueue>();
+        services.AddScoped<EmailDispatcher>();
+        services.AddScoped<EmailRetentionTask>();
+        services.AddScoped<EmailFileCleanup>();
 
         services.AddHostedService<EmailDispatchWorker>();
 

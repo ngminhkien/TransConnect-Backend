@@ -34,7 +34,7 @@ public sealed class VehicleService(OperatorDbContext db, OperatorAccess access, 
             VerificationReference = request.VerificationReference
         };
         db.OrganizationVehicles.Add(link);
-        access.Audit(organizationId, link.Id, "vehicle.link", plate + ": " + request.VerificationReference);
+        access.Audit(organizationId, link.Id, "vehicle.link");
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException)
         {
@@ -55,7 +55,28 @@ public sealed class VehicleService(OperatorDbContext db, OperatorAccess access, 
             join vehicle in db.Vehicles.AsNoTracking() on link.VehicleId equals vehicle.Id
             where link.OrganizationId == organizationId
             select new VehicleResponse(link.Id, vehicle.Id, vehicle.RegistrationPlate, vehicle.Description,
-                link.IsSuspended, link.EndedAt)).ToListAsync(ct);
+                link.IsSuspended, link.EndedAt, link.EndedBy, link.EndReason, vehicle.VehicleKind,
+                vehicle.SeatCount, vehicle.PermittedPayloadKg, vehicle.VehicleKind != null
+                    && (vehicle.SeatCount != null || vehicle.PermittedPayloadKg != null))).ToListAsync(ct);
+    }
+
+    public async Task<VehicleResponse> UpdateProfileAsync(Guid organizationId, Guid linkId, UpdateVehicleProfileRequest request, CancellationToken ct)
+    {
+        ProfileValidation.Check(request);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAsync(organizationId, ct);
+        await access.OrganizationAsync(organizationId, "owner", ct);
+        var link = await FindAsync(organizationId, linkId, ct);
+        if (link.EndedAt != null) throw new ConflictException("Liên kết xe đã kết thúc.");
+        var vehicle = await db.Vehicles.SingleAsync(x => x.Id == link.VehicleId, ct);
+        vehicle.VehicleKind = request.VehicleKind;
+        vehicle.SeatCount = request.SeatCount;
+        vehicle.PermittedPayloadKg = request.PermittedPayloadKg;
+        access.Audit(organizationId, link.Id, "vehicle.profile-update");
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return new(link.Id, vehicle.Id, vehicle.RegistrationPlate, vehicle.Description, link.IsSuspended, link.EndedAt,
+            link.EndedBy, link.EndReason, vehicle.VehicleKind, vehicle.SeatCount, vehicle.PermittedPayloadKg, true);
     }
 
     public async Task SuspendAsync(Guid organizationId, Guid linkId, SuspendVehicleRequest request, CancellationToken ct)
@@ -71,15 +92,21 @@ public sealed class VehicleService(OperatorDbContext db, OperatorAccess access, 
         await tx.CommitAsync(ct);
     }
 
-    public async Task EndAsync(Guid organizationId, Guid linkId, CancellationToken ct)
+    public async Task EndAsync(Guid organizationId, Guid linkId, EndVehicleRequest request, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Length > 1000)
+            throw new ValidationAppException("Lý do kết thúc phải có từ 1 đến 1000 ký tự.");
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await access.LockAsync(organizationId, ct);
         await access.OrganizationAsync(organizationId, "manage", ct);
         var link = await FindAsync(organizationId, linkId, ct);
+        if (link.EndedAt != null) return; // Preserve the original actor, time and reason on retries.
+        var actor = await access.AccountAsync(ct);
         if (await obligations.HasVehicleObligationsAsync(organizationId, link.VehicleId, ct))
             throw new ConflictException("Xe còn nghĩa vụ vận chuyển chưa giải quyết.");
         link.EndedAt ??= DateTime.UtcNow;
+        link.EndedBy = actor.AccountId;
+        link.EndReason = request.Reason.Trim();
         link.IsSuspended = true;
         access.Audit(organizationId, linkId, "vehicle.end");
         await db.SaveChangesAsync(ct);

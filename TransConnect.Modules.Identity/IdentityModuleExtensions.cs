@@ -42,7 +42,15 @@ public static class IdentityModuleExtensions
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<LiveAccountClaims>();
+        services.AddScoped<TransConnect.Common.Auth.IAccountDisplayDirectory, AccountDisplayDirectory>();
+        services.AddScoped<AccountManagementService>();
+        services.Configure<CloudinaryOptions>(configuration.GetSection("Cloudinary"));
+        services.AddHttpClient<AvatarService>(client => client.Timeout = TimeSpan.FromSeconds(30));
+        services.AddScoped<TransConnect.Common.Maintenance.IMaintenanceTask, IdentityAuditRetentionTask>();
         services.AddScoped<TransConnect.Common.Auth.IAccountDirectory, AccountDirectory>();
+        services.AddScoped<TransConnect.Common.Auth.IAccountReferenceDirectory, AccountReferenceDirectory>();
+        services.AddScoped<TransConnect.Common.Notifications.IEmailDeliveryGuard, VerificationEmailGuard>();
 
         return services;
     }

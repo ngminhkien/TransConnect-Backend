@@ -7,6 +7,7 @@ namespace TransConnect.Modules.Compliance.Persistence;
 public sealed class ComplianceDbContext(DbContextOptions<ComplianceDbContext> options) : AppDbContextBase(options)
 {
     public DbSet<DemoDocument> DemoDocuments => Set<DemoDocument>();
+    public DbSet<DemoProfileDocument> DemoProfileDocuments => Set<DemoProfileDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

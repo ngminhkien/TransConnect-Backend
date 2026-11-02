@@ -57,6 +57,9 @@ namespace TransConnect.Modules.Compliance.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<Guid?>("ProfileDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("datetime2");
 
@@ -93,6 +96,9 @@ namespace TransConnect.Modules.Compliance.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("VersionNumber")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId", "CreatedAt");
@@ -100,7 +106,69 @@ namespace TransConnect.Modules.Compliance.Migrations
                     b.HasIndex("Bucket", "ObjectKey")
                         .IsUnique();
 
+                    b.HasIndex("ProfileDocumentId", "VersionNumber")
+                        .IsUnique()
+                        .HasFilter("[ProfileDocumentId] IS NOT NULL");
+
                     b.ToTable("DemoDocuments", "compliance");
+                });
+
+            modelBuilder.Entity("TransConnect.Modules.Compliance.Entities.DemoProfileDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("LastVersionNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ScopeOrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectType", "SubjectId", "DocumentType")
+                        .IsUnique()
+                        .HasFilter("[ScopeOrganizationId] IS NULL");
+
+                    b.HasIndex("SubjectType", "SubjectId", "DocumentType", "ScopeOrganizationId")
+                        .IsUnique()
+                        .HasFilter("[ScopeOrganizationId] IS NOT NULL");
+
+                    b.ToTable("DemoProfileDocuments", "compliance", t =>
+                        {
+                            t.HasCheckConstraint("CK_DemoProfileDocuments_Type", "([SubjectType] = 'Driver' AND [DocumentType] = 'DriverLicense' AND [ScopeOrganizationId] IS NULL) OR ([SubjectType] = 'Vehicle' AND [DocumentType] = 'VehicleRegistration' AND [ScopeOrganizationId] IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("TransConnect.Modules.Compliance.Entities.DemoDocument", b =>
+                {
+                    b.HasOne("TransConnect.Modules.Compliance.Entities.DemoProfileDocument", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }

@@ -32,6 +32,14 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ContactAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -66,7 +74,10 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.HasIndex("AccountId")
                         .IsUnique();
 
-                    b.ToTable("Drivers", "operator");
+                    b.ToTable("Drivers", "operator", t =>
+                        {
+                            t.HasCheckConstraint("CK_Drivers_ReviewStatus", "[ReviewStatus] IN ('Pending', 'Approved', 'Rejected')");
+                        });
                 });
 
             modelBuilder.Entity("TransConnect.Modules.Operator.Entities.DriverEngagement", b =>
@@ -84,14 +95,29 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DriverAddressSnapshot")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DriverNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("DriverPhoneSnapshot")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime?>("EndedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("InvitationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
@@ -110,6 +136,8 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DriverId");
+
+                    b.HasIndex("InvitationId");
 
                     b.HasIndex("TokenHash")
                         .IsUnique();
@@ -143,13 +171,24 @@ namespace TransConnect.Modules.Operator.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<Guid>("OrganizationId")
+                    b.Property<Guid?>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequestId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
 
                     b.HasIndex("OrganizationId", "CreatedAt");
 
@@ -162,8 +201,19 @@ namespace TransConnect.Modules.Operator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -174,6 +224,10 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.Property<int>("EmployeeLimit")
                         .HasColumnType("int");
 
+                    b.Property<string>("LegalEntityType")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -183,6 +237,10 @@ namespace TransConnect.Modules.Operator.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("RegisteredAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("RegistrationNumber")
                         .IsRequired()
@@ -212,7 +270,10 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.HasIndex("RegistrationNumber")
                         .IsUnique();
 
-                    b.ToTable("Organizations", "operator");
+                    b.ToTable("Organizations", "operator", t =>
+                        {
+                            t.HasCheckConstraint("CK_Organizations_ReviewStatus", "[ReviewStatus] IN ('Pending', 'Approved', 'Rejected')");
+                        });
                 });
 
             modelBuilder.Entity("TransConnect.Modules.Operator.Entities.OrganizationInvitation", b =>
@@ -267,7 +328,10 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
-                    b.ToTable("Invitations", "operator");
+                    b.ToTable("Invitations", "operator", t =>
+                        {
+                            t.HasCheckConstraint("CK_Invitations_Role", "[Role] IN ('OrganizationOwner', 'Manager', 'Dispatcher', 'Driver')");
+                        });
                 });
 
             modelBuilder.Entity("TransConnect.Modules.Operator.Entities.OrganizationMember", b =>
@@ -304,9 +368,14 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.HasIndex("AccountId")
                         .IsUnique();
 
-                    b.HasIndex("OrganizationId");
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasFilter("[Role] = 'OrganizationOwner' AND [IsActive] = 1 AND [DeletedAt] IS NULL");
 
-                    b.ToTable("Members", "operator");
+                    b.ToTable("Members", "operator", t =>
+                        {
+                            t.HasCheckConstraint("CK_Members_Role", "[Role] IN ('OrganizationOwner', 'Manager', 'Dispatcher')");
+                        });
                 });
 
             modelBuilder.Entity("TransConnect.Modules.Operator.Entities.OrganizationVehicle", b =>
@@ -321,8 +390,15 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("EndReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<DateTime?>("EndedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("EndedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsSuspended")
                         .HasColumnType("bit");
@@ -355,6 +431,42 @@ namespace TransConnect.Modules.Operator.Migrations
                     b.ToTable("OrganizationVehicles", "operator");
                 });
 
+            modelBuilder.Entity("TransConnect.Modules.Operator.Entities.ProfileReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectType", "SubjectId", "CreatedAt");
+
+                    b.ToTable("ProfileReviews", "operator");
+                });
+
             modelBuilder.Entity("TransConnect.Modules.Operator.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -372,20 +484,34 @@ namespace TransConnect.Modules.Operator.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<decimal?>("PermittedPayloadKg")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<string>("RegistrationPlate")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int?>("SeatCount")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("VehicleKind")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("RegistrationPlate")
                         .IsUnique();
 
-                    b.ToTable("Vehicles", "operator");
+                    b.ToTable("Vehicles", "operator", t =>
+                        {
+                            t.HasCheckConstraint("CK_Vehicles_ProfileCapacity", "([VehicleKind] IS NULL AND [SeatCount] IS NULL AND [PermittedPayloadKg] IS NULL) OR ([VehicleKind] IS NOT NULL AND [VehicleKind] = 'Passenger' AND [SeatCount] IS NOT NULL AND [SeatCount] BETWEEN 1 AND 1000 AND [PermittedPayloadKg] IS NULL) OR ([VehicleKind] IS NOT NULL AND [VehicleKind] = 'Freight' AND [PermittedPayloadKg] IS NOT NULL AND CAST([PermittedPayloadKg] AS decimal(12,2)) > 0 AND CAST([PermittedPayloadKg] AS decimal(12,2)) <= 1000000 AND [SeatCount] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("TransConnect.Modules.Operator.Entities.DriverEngagement", b =>
@@ -395,6 +521,11 @@ namespace TransConnect.Modules.Operator.Migrations
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("TransConnect.Modules.Operator.Entities.OrganizationInvitation", null)
+                        .WithMany()
+                        .HasForeignKey("InvitationId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TransConnect.Modules.Operator.Entities.Organization", null)
                         .WithMany()

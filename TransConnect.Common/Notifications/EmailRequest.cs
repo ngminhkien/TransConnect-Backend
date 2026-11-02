@@ -17,4 +17,7 @@ public record EmailRequest
 
     // null = gửi ngay. Để sẵn cho việc gửi theo lịch sau này mà không phải đổi contract.
     public DateTime? ScheduledAt { get; init; }
+    public string? SourceType { get; init; }
+    public Guid? SourceId { get; init; }
+    public DateTime? DeliverBefore { get; init; }
 }

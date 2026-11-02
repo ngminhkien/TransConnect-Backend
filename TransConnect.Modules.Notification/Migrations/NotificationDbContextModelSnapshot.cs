@@ -36,6 +36,9 @@ namespace TransConnect.Modules.Notification.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("BodyPurgedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("BodyText")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -44,6 +47,15 @@ namespace TransConnect.Modules.Notification.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeliverBefore")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DispatchLease")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("EligibilityCheckedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("LastError")
@@ -56,11 +68,23 @@ namespace TransConnect.Modules.Notification.Migrations
                     b.Property<DateTime?>("ProcessingStartedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("RetentionCategory")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("ScheduledAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -74,6 +98,9 @@ namespace TransConnect.Modules.Notification.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("TerminalAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ToEmail")
                         .IsRequired()
@@ -91,7 +118,12 @@ namespace TransConnect.Modules.Notification.Migrations
 
                     b.HasIndex("Status", "ScheduledAt");
 
-                    b.ToTable("EmailMessages", "notification");
+                    b.HasIndex("Status", "TerminalAt");
+
+                    b.ToTable("EmailMessages", "notification", t =>
+                        {
+                            t.HasCheckConstraint("CK_EmailMessages_Status", "[Status] IN (0, 1, 2, 3)");
+                        });
                 });
 #pragma warning restore 612, 618
         }

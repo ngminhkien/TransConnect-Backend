@@ -158,7 +158,12 @@ public class ApiContractTests
         using var factory = new ApiFactory();
         using var client = factory.CreateApiClient();
         using var scope = factory.Services.CreateScope();
-        client.DefaultRequestHeaders.Authorization = Bearer(scope.ServiceProvider, new User(), []);
+        var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        await db.Database.EnsureCreatedAsync();
+        var user = new User { Email = "no-permission@example.com", FullName = "No permission" };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        client.DefaultRequestHeaders.Authorization = Bearer(scope.ServiceProvider, user, []);
         using var response = await client.GetAsync("/roles");
         var json = await AssertFailure(response, HttpStatusCode.Forbidden, AppErrorCodes.Forbidden);
         Assert.Equal("Bạn không có quyền thực hiện thao tác này.", json.GetProperty("message").GetString());
@@ -182,7 +187,7 @@ public class ApiContractTests
 }
 
 internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor? interceptor = null,
-    TransConnect.Common.Transport.ITransportObligations? obligations = null) : WebApplicationFactory<Program>
+    TransConnect.Common.Transport.ITransportObligations? obligations = null, string? operatorDatabasePath = null) : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly SqliteConnection _notificationConnection = new("Data Source=:memory:");
@@ -203,6 +208,7 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
             // Không migrate SQL Server, chạy SMTP hay worker trong kiểm thử API.
             foreach (var registration in services.Where(d =>
                          d.ImplementationType == typeof(EmailDispatchWorker)
+                         || d.ImplementationType == typeof(TransConnect.Common.Maintenance.MaintenanceWorker)
                          || d.ServiceType == typeof(IdentityDbContext)
                          || d.ServiceType == typeof(NotificationDbContext)
                          || d.ServiceType == typeof(OperatorDbContext)
@@ -217,7 +223,11 @@ internal sealed class ApiFactory(string? databasePath = null, Microsoft.EntityFr
                 if (interceptor is not null) options.AddInterceptors(interceptor);
             });
             services.AddDbContext<NotificationDbContext>(options => options.UseSqlite(_notificationConnection));
-            services.AddDbContext<OperatorDbContext>(options => options.UseSqlite(_operatorConnection));
+            services.AddDbContext<OperatorDbContext>(options =>
+            {
+                if (operatorDatabasePath is null) options.UseSqlite(_operatorConnection);
+                else options.UseSqlite($"Data Source={operatorDatabasePath};Pooling=False");
+            });
             if (obligations is not null)
                 services.AddSingleton<TransConnect.Common.Transport.ITransportObligations>(obligations);
             services.AddControllers().AddApplicationPart(typeof(ContractErrorsController).Assembly);

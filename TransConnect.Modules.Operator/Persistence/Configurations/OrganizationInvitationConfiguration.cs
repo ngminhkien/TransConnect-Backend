@@ -8,7 +8,7 @@ public sealed class OrganizationInvitationConfiguration : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<OrganizationInvitation> builder)
     {
-        builder.ToTable("Invitations");
+        builder.ToTable("Invitations", t => t.HasCheckConstraint("CK_Invitations_Role", "[Role] IN ('OrganizationOwner', 'Manager', 'Dispatcher', 'Driver')"));
         builder.Property(x => x.Email).HasMaxLength(256).IsRequired();
         builder.Property(x => x.Role).HasMaxLength(30).IsRequired();
         builder.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();

@@ -8,6 +8,8 @@ public class OrganizationVehicle : BaseEntity
     public Guid VehicleId { get; set; }
     public bool IsSuspended { get; set; }
     public DateTime? EndedAt { get; set; }
+    public Guid? EndedBy { get; set; }
+    public string? EndReason { get; set; }
     public Guid VerifiedBy { get; set; }
     public string VerificationReference { get; set; } = string.Empty;
 }

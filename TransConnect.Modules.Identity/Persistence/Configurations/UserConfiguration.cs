@@ -8,7 +8,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("Users");
+        builder.ToTable("Users", t => t.HasCheckConstraint("CK_Users_AccountGroup", "[AccountGroup] IN ('Customer', 'Operator', 'InternalAdmin')"));
 
         builder.Property(u => u.Email).IsRequired().HasMaxLength(256);
         builder.Property(u => u.AccountGroup).IsRequired().HasMaxLength(20);

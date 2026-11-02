@@ -38,7 +38,10 @@ public static class ComplianceModuleExtensions
             });
         });
         services.AddScoped<IPrivateDocumentStorage, S3PrivateDocumentStorage>();
-        services.AddScoped<IDemoDocumentService, DemoDocumentService>();
+        services.AddScoped<DemoDocumentService>();
+        services.AddScoped<IDemoDocumentService>(sp => sp.GetRequiredService<DemoDocumentService>());
+        services.AddScoped<IProfileDocumentService, ProfileDocumentService>();
+        services.AddScoped<TransConnect.Common.Maintenance.IMaintenanceTask, DemoAccountReferenceCheckTask>();
         return services;
     }
 

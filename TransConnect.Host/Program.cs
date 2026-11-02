@@ -51,6 +51,14 @@ try
     // Cross-cutting (TransConnect.Common)
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+    builder.Services.AddScoped<TransConnect.Common.Audit.IAuditContext, TransConnect.Common.Audit.HttpAuditContext>();
+    builder.Services.AddSingleton(TimeProvider.System);
+    builder.Services.AddOptions<TransConnect.Common.Maintenance.MaintenanceOptions>()
+        .Bind(builder.Configuration.GetSection("Maintenance"))
+        .Validate(o => o.PollSeconds > 0 && o.BatchSize > 0 && o.AuditRetentionMonths > 0,
+            "Chu kỳ, kích thước lô và thời hạn lưu audit phải lớn hơn 0.")
+        .ValidateOnStart();
+    builder.Services.AddHostedService<TransConnect.Common.Maintenance.MaintenanceWorker>();
     builder.Services.AddExceptionHandler<AppExceptionHandler>();
     builder.Services.AddProblemDetails();
 
@@ -139,6 +147,13 @@ try
             // API đều là ApiResponse. Ghi đè để client chỉ phải parse 1 định dạng duy nhất.
             options.Events = new JwtBearerEvents
             {
+                OnTokenValidated = async context =>
+                {
+                    if (context.Principal is null || !await context.HttpContext.RequestServices
+                        .GetRequiredService<LiveAccountClaims>()
+                        .RefreshAsync(context.Principal, context.HttpContext.RequestAborted))
+                        context.Fail("Tài khoản không còn khả dụng.");
+                },
                 OnChallenge = context =>
                 {
                     // Chặn handler mặc định, nếu không nó sẽ ghi đè response mình vừa viết.

@@ -12,14 +12,26 @@ using TransConnect.Modules.Operator.Persistence;
 namespace TransConnect.Modules.Operator.Services;
 
 public sealed class OrganizationService(OperatorDbContext db, OperatorAccess access,
-    ICurrentUser current, IEmailQueue emails, IOptions<OperatorOptions> options) : IOrganizationService
+    ICurrentUser current, IEmailQueue emails, IOptions<OperatorOptions> options, IAccountDirectory accounts) : IOrganizationService
 {
     public async Task<OrganizationResponse> SubmitAsync(SubmitOrganizationRequest request, CancellationToken ct)
     {
+        ValidateSubmission(request);
+        var account = await access.AccountAsync(ct);
+        if (account.Group == AccountGroups.InternalAdmin) await access.AdminAsync(ct);
+        else account = await access.OperatorAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(account.AccountId, ct);
+        if (account.Group == AccountGroups.Operator)
+            await CheckApplicantAsync(account.AccountId, ct);
+        if (account.Group == AccountGroups.InternalAdmin && (string.IsNullOrWhiteSpace(request.OwnerEmail)
+            || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(request.OwnerEmail)))
+            throw new ValidationAppException("Nộp thay cần email người nhận Owner.");
         var org = new Organization
         {
+            CreatedByUserId = account.Group == AccountGroups.Operator ? account.AccountId : null,
             Name = request.Name.Trim(), RegistrationNumber = request.RegistrationNumber.Trim().ToUpperInvariant(),
-            ProposedOwnerEmail = request.OwnerEmail.Trim().ToLowerInvariant(),
+            ProposedOwnerEmail = account.Group == AccountGroups.Operator ? account.Email : request.OwnerEmail.Trim().ToLowerInvariant(),
             EmployeeLimit = options.Value.DefaultEmployeeLimit,
             DriverLimit = options.Value.DefaultDriverLimit
         };
@@ -33,6 +45,55 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
                 throw new ConflictException("Mã đăng ký tổ chức đã tồn tại.");
             throw;
         }
+        await tx.CommitAsync(ct);
+        return Response(org);
+    }
+
+    private static void ValidateSubmission(SubmitOrganizationRequest request)
+    {
+        ProfileValidation.Check(request);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(request.RegistrationNumber, @"\A(?:[0-9]{10}|[0-9]{13})\z"))
+            throw new ValidationAppException(new Dictionary<string, string[]> { ["registrationNumber"] = ["Mã số thuế phải gồm 10 hoặc 13 chữ số."] });
+    }
+
+    private async Task CheckApplicantAsync(Guid accountId, CancellationToken ct)
+    {
+        if (await db.Drivers.IgnoreQueryFilters().AnyAsync(x => x.AccountId == accountId, ct)
+            || await db.Members.IgnoreQueryFilters().AnyAsync(x => x.AccountId == accountId, ct))
+            throw new ConflictException("Người nhận Owner cần tài khoản Operator riêng, chưa thuộc tổ chức và chưa có hồ sơ tài xế.");
+    }
+
+    public async Task<OrganizationResponse> ResubmitAsync(Guid id, SubmitOrganizationRequest request, CancellationToken ct)
+    {
+        ValidateSubmission(request);
+        var account = await access.AccountAsync(ct);
+        var legacyAdmin = account.Group == AccountGroups.InternalAdmin;
+        if (legacyAdmin) await access.AdminAsync(ct);
+        else account = await access.OperatorAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(account.AccountId, ct);
+        await access.LockAsync(id, ct);
+        var org = await db.Organizations.SingleOrDefaultAsync(x => x.Id == id
+            && (x.CreatedByUserId == account.AccountId || legacyAdmin && x.CreatedByUserId == null), ct)
+            ?? throw new NotFoundException("Hồ sơ tổ chức", id);
+        if (org.ReviewStatus != "Rejected") throw new ConflictException("Chỉ nộp lại hồ sơ bị từ chối.");
+        if (!legacyAdmin) await CheckApplicantAsync(account.AccountId, ct);
+        else
+        {
+            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(request.OwnerEmail)
+                || string.IsNullOrWhiteSpace(request.OwnerEmail))
+                throw new ValidationAppException("Nộp thay cần email người nhận Owner.");
+            org.ProposedOwnerEmail = request.OwnerEmail.Trim().ToLowerInvariant();
+        }
+        if (await db.Organizations.IgnoreQueryFilters().AnyAsync(x => x.Id != id && x.RegistrationNumber == request.RegistrationNumber, ct))
+            throw new ConflictException("Mã số thuế đã tồn tại.");
+        org.Name = request.Name.Trim();
+        org.RegistrationNumber = request.RegistrationNumber;
+        org.ReviewStatus = "Pending";
+        db.ProfileReviews.Add(new() { SubjectType = "Organization", SubjectId = id, Status = "Pending", ActorAccountId = account.AccountId });
+        access.Audit(id, id, "organization.resubmit");
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Response(org);
     }
 
@@ -41,18 +102,44 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         var account = await access.AccountAsync(ct);
         var query = db.Organizations.AsNoTracking();
         if (account.Group != AccountGroups.InternalAdmin || !current.HasPermission("organizations.manage"))
-            query = query.Where(x => db.Members.Any(m => m.OrganizationId == x.Id
+            query = query.Where(x => x.CreatedByUserId == account.AccountId || db.Members.Any(m => m.OrganizationId == x.Id
                 && m.AccountId == account.AccountId && m.IsActive));
         return (await query.OrderBy(x => x.Name).Take(200).ToListAsync(ct)).Select(Response).ToList();
     }
 
-    public async Task<OrganizationResponse> GetAsync(Guid id, CancellationToken ct) =>
-        Response(await access.OrganizationAsync(id, "read", ct));
+    public async Task<OrganizationResponse> GetAsync(Guid id, CancellationToken ct)
+    {
+        var account = await access.AccountAsync(ct);
+        var application = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.CreatedByUserId == account.AccountId, ct);
+        return Response(application ?? await access.OrganizationAsync(id, "read", ct));
+    }
+
+    public async Task<OrganizationResponse> UpdateProfileAsync(Guid id, UpdateOrganizationProfileRequest request, CancellationToken ct)
+    {
+        ProfileValidation.Check(request);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAsync(id, ct);
+        var org = await access.OrganizationAsync(id, "owner", ct);
+        org.LegalEntityType = request.LegalEntityType;
+        org.RegisteredAddress = request.RegisteredAddress.Trim();
+        org.ContactPhone = request.ContactPhone.Trim();
+        org.ContactEmail = request.ContactEmail.Trim().ToLowerInvariant();
+        access.Audit(id, id, "organization.profile-update");
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Response(org);
+    }
 
     public async Task<OrganizationResponse> ReviewAsync(Guid id, ReviewRequest request, CancellationToken ct)
     {
+        ProfileValidation.Check(request);
+        if (!request.Approved && string.IsNullOrWhiteSpace(request.Note))
+            throw new ValidationAppException("Vui lòng nhập lý do từ chối.");
         var admin = await access.AdminAsync(ct);
+        var candidate = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new NotFoundException("Tổ chức", id);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        if (candidate.CreatedByUserId is { } applicant) await access.LockAccountAsync(applicant, ct);
         await access.LockAsync(id, ct);
         var org = await access.OrganizationAsync(id, "owner", ct);
         if (org.ReviewStatus != "Pending") throw new ConflictException("Hồ sơ đã được xét duyệt.");
@@ -61,8 +148,22 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         org.ReviewedBy = admin.AccountId;
         org.ReviewedAt = DateTime.UtcNow;
         access.Audit(id, id, "organization.review", org.ReviewStatus);
+        db.ProfileReviews.Add(new() { SubjectType = "Organization", SubjectId = id,
+            Status = org.ReviewStatus, Note = request.Note, ActorAccountId = admin.AccountId });
         if (request.Approved)
-            await CreateInvitationAsync(org, org.ProposedOwnerEmail, "OrganizationOwner", ct);
+        {
+            if (org.CreatedByUserId is { } applicantId)
+            {
+                var applicantAccount = await accounts.FindActiveAsync(applicantId, ct);
+                if (applicantAccount is null || applicantAccount.Group != AccountGroups.Operator || !applicantAccount.EmailVerified)
+                    throw new ConflictException("Tài khoản người nộp chưa đủ điều kiện nhận Owner.");
+                await CheckApplicantAsync(applicantId, ct);
+                if (org.EmployeeLimit < 1) throw new ConflictException("Hạn mức cần đủ cho Owner.");
+                db.Members.Add(new() { OrganizationId = id, AccountId = applicantId, Role = "OrganizationOwner" });
+                access.Audit(id, applicantId, "member.accept", "OrganizationOwner");
+            }
+            else await CreateInvitationAsync(org, org.ProposedOwnerEmail, "OrganizationOwner", ct);
+        }
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return Response(org);
@@ -119,6 +220,7 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         await emails.EnqueueAsync(new EmailRequest
         {
             ToEmail = email, ToName = email, TemplateCode = "organization-invitation",
+            SourceType = EmailSourceTypes.Invitation, SourceId = item.Id, DeliverBefore = item.ExpiresAt,
             Placeholders = new Dictionary<string, string>
             {
                 ["OrganizationName"] = org.Name, ["InvitationToken"] = token,
@@ -135,6 +237,7 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         var candidate = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(x => x.TokenHash == hash && x.Role != "Driver", ct)
             ?? throw new UnauthorizedAppException("Lời mời không hợp lệ.");
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(account.AccountId, ct);
         await access.LockAsync(candidate.OrganizationId, ct);
         var invitation = await db.Invitations.SingleAsync(x => x.Id == candidate.Id, ct);
         var now = DateTime.UtcNow;
@@ -143,6 +246,15 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
             throw new UnauthorizedAppException("Lời mời không hợp lệ hoặc không dành cho tài khoản này.");
         var org = await db.Organizations.SingleAsync(x => x.Id == invitation.OrganizationId, ct);
         if (org.ReviewStatus != "Approved") throw new ConflictException("Tổ chức chưa hoạt động.");
+        if (invitation.Role == "OrganizationOwner")
+        {
+            if (invitation.Email != org.ProposedOwnerEmail
+                || await db.Drivers.IgnoreQueryFilters().AnyAsync(x => x.AccountId == account.AccountId, ct))
+                throw new ConflictException("Tài khoản nhận Owner phải đúng email đăng ký và không có hồ sơ tài xế.");
+            if (await db.Members.AnyAsync(x => x.OrganizationId == org.Id && x.IsActive
+                && x.Role == "OrganizationOwner", ct))
+                throw new ConflictException("Tổ chức đã có Owner hoạt động.");
+        }
         // Fixed organization membership; driver engagements are a separate many-to-many relation.
         if (await db.Members.IgnoreQueryFilters().AnyAsync(x => x.AccountId == account.AccountId, ct))
             throw new ConflictException("Tài khoản đã có tư cách thành viên; Owner cần quản lý tư cách hiện có.");
@@ -225,7 +337,8 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         await access.OrganizationAsync(id, "owner", ct);
         return await db.AuditLogs.AsNoTracking().Where(x => x.OrganizationId == id)
             .OrderByDescending(x => x.CreatedAt).Take(200)
-            .Select(x => new AuditResponse(x.Id, x.ActorAccountId, x.SubjectId, x.Action, x.Details, x.CreatedAt)).ToListAsync(ct);
+            .Select(x => new AuditResponse(x.Id, x.ActorAccountId, x.SubjectId, x.Action, x.Details, x.CreatedAt,
+                x.SubjectType, x.RequestId)).ToListAsync(ct);
     }
 
     public async Task SetDriverLimitAsync(Guid id, DriverLimitRequest request, CancellationToken ct)
@@ -253,6 +366,8 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
             && x.RevokedAt == null && x.ExpiresAt > now, ct);
 
     private static OrganizationResponse Response(Organization x) =>
-        new(x.Id, x.Name, x.RegistrationNumber, x.ProposedOwnerEmail, x.ReviewStatus, x.ReviewNote, x.EmployeeLimit, x.DriverLimit);
+        new(x.Id, x.Name, x.RegistrationNumber, x.ProposedOwnerEmail, x.ReviewStatus, x.ReviewNote, x.EmployeeLimit, x.DriverLimit,
+            x.LegalEntityType, x.RegisteredAddress, x.ContactPhone, x.ContactEmail,
+            x.LegalEntityType != null && x.RegisteredAddress != null && x.ContactPhone != null && x.ContactEmail != null, x.CreatedByUserId);
     private static MemberResponse Response(OrganizationMember x) => new(x.Id, x.AccountId, x.Role, x.IsActive);
 }

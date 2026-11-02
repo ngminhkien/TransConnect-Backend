@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TransConnect.Base.Exceptions;
 using TransConnect.Common.Auth;
@@ -17,7 +17,13 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
 {
     public async Task<DriverResponse> SubmitAsync(SubmitDriverRequest request, CancellationToken ct)
     {
+        ProfileValidation.Check(request);
         var account = await access.OperatorAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(account.AccountId, ct);
+        if (await db.Members.IgnoreQueryFilters().AnyAsync(x => x.AccountId == account.AccountId
+            && x.Role == "OrganizationOwner", ct))
+            throw new ConflictException("Owner phải dùng tài khoản Operator riêng để đăng ký tài xế.");
         if (await db.Drivers.IgnoreQueryFilters().AnyAsync(x => x.AccountId == account.AccountId, ct))
             throw new ConflictException("Tài khoản đã có hồ sơ tài xế.");
         var driver = new Driver { AccountId = account.AccountId, FullName = request.FullName.Trim() };
@@ -29,6 +35,27 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
                 throw new ConflictException("Tài khoản đã có hồ sơ tài xế.");
             throw;
         }
+        await tx.CommitAsync(ct);
+        return Response(driver);
+    }
+
+    public async Task<DriverResponse> ResubmitAsync(SubmitDriverRequest request, CancellationToken ct)
+    {
+        ProfileValidation.Check(request);
+        var account = await access.OperatorAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(account.AccountId, ct);
+        await db.Drivers.Where(x => x.AccountId == account.AccountId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.UpdatedAt, x => x.UpdatedAt), ct);
+        var driver = await db.Drivers.SingleOrDefaultAsync(x => x.AccountId == account.AccountId, ct)
+            ?? throw new NotFoundException("Chưa có hồ sơ tài xế.");
+        if (driver.ReviewStatus != "Rejected") throw new ConflictException("Chỉ nộp lại hồ sơ bị từ chối.");
+        driver.FullName = request.FullName.Trim();
+        driver.ReviewStatus = "Pending";
+        db.ProfileReviews.Add(new() { SubjectType = "Driver", SubjectId = driver.Id, Status = "Pending", ActorAccountId = account.AccountId });
+        access.Audit(Guid.Empty, driver.Id, "driver.resubmit");
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Response(driver);
     }
 
@@ -37,6 +64,39 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
         var account = await access.OperatorAsync(ct);
         return Response(await db.Drivers.AsNoTracking().SingleOrDefaultAsync(x => x.AccountId == account.AccountId, ct)
             ?? throw new NotFoundException("Chưa có hồ sơ tài xế."));
+    }
+
+    public async Task<DriverResponse> UpdateProfileAsync(UpdateDriverProfileRequest request, CancellationToken ct)
+    {
+        ProfileValidation.Check(request);
+        var account = await access.OperatorAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(account.AccountId, ct);
+        var driver = await db.Drivers.SingleOrDefaultAsync(x => x.AccountId == account.AccountId, ct)
+            ?? throw new NotFoundException("Chưa có hồ sơ tài xế.");
+        driver.ContactPhone = request.ContactPhone.Trim();
+        driver.ContactAddress = request.ContactAddress.Trim();
+        access.Audit(Guid.Empty, driver.Id, "driver.profile-update");
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Response(driver);
+    }
+
+    public async Task<EngagementProfileResponse> EngagementProfileAsync(Guid organizationId, Guid engagementId, CancellationToken ct)
+    {
+        var account = await access.OperatorAsync(ct);
+        await access.OrganizationAsync(organizationId, "owner", ct);
+        if (!await db.Members.AnyAsync(x => x.OrganizationId == organizationId && x.AccountId == account.AccountId
+            && x.IsActive && x.Role == "OrganizationOwner", ct)) throw new ForbiddenAppException();
+        var engagement = await db.Engagements.AsNoTracking().SingleOrDefaultAsync(x => x.Id == engagementId
+            && x.OrganizationId == organizationId && x.AcceptedAt != null && x.RevokedAt == null, ct)
+            ?? throw new NotFoundException("Quan hệ cộng tác", engagementId);
+        if (engagement.EndedAt is not null)
+            return new(engagement.Id, engagement.DriverId, engagement.DriverNameSnapshot, engagement.DriverPhoneSnapshot,
+                engagement.DriverAddressSnapshot, true, engagement.EndedAt, engagement.DriverNameSnapshot != null);
+        var driver = await db.Drivers.AsNoTracking().SingleOrDefaultAsync(x => x.Id == engagement.DriverId, ct)
+            ?? throw new NotFoundException("Hồ sơ tài xế không còn khả dụng.");
+        return new(engagement.Id, driver.Id, driver.FullName, driver.ContactPhone, driver.ContactAddress, false, null, false);
     }
 
     public async Task<IReadOnlyList<DriverResponse>> PendingAsync(CancellationToken ct)
@@ -48,6 +108,9 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
 
     public async Task<DriverResponse> ReviewAsync(Guid id, ReviewRequest request, CancellationToken ct)
     {
+        ProfileValidation.Check(request);
+        if (!request.Approved && string.IsNullOrWhiteSpace(request.Note))
+            throw new ValidationAppException("Vui lòng nhập lý do từ chối.");
         var admin = await access.AdminAsync(ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Drivers.Where(x => x.Id == id)
@@ -60,6 +123,8 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
         driver.ReviewedAt = DateTime.UtcNow;
         driver.ReviewedBy = admin.AccountId;
         access.Audit(Guid.Empty, id, "driver.review", driver.ReviewStatus);
+        db.ProfileReviews.Add(new() { SubjectType = "Driver", SubjectId = id, Status = driver.ReviewStatus,
+            Note = request.Note, ActorAccountId = admin.AccountId });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return Response(driver);
@@ -94,6 +159,7 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
         await emails.EnqueueAsync(new EmailRequest
         {
             ToEmail = account.Email, ToName = driver.FullName, TemplateCode = "organization-invitation",
+            SourceType = EmailSourceTypes.Engagement, SourceId = engagement.Id, DeliverBefore = engagement.ExpiresAt,
             Placeholders = new Dictionary<string, string>
             {
                 ["OrganizationName"] = org.Name, ["InvitationToken"] = token,
@@ -130,6 +196,7 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
         await emails.EnqueueAsync(new EmailRequest
         {
             ToEmail = email, ToName = email, TemplateCode = "organization-invitation",
+            SourceType = EmailSourceTypes.Invitation, SourceId = invitation.Id, DeliverBefore = invitation.ExpiresAt,
             Placeholders = new Dictionary<string, string>
             {
                 ["OrganizationName"] = org.Name, ["InvitationToken"] = token,
@@ -163,6 +230,7 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
         var engagement = new DriverEngagement
         {
             OrganizationId = invitation.OrganizationId, DriverId = driver.Id,
+            InvitationId = invitation.Id,
             TokenHash = invitation.TokenHash, ExpiresAt = invitation.ExpiresAt, AcceptedAt = invitation.AcceptedAt
         };
         db.Engagements.Add(engagement);
@@ -205,23 +273,36 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
 
     public async Task EndAsync(Guid organizationId, Guid engagementId, CancellationToken ct)
     {
+        var candidate = await db.Engagements.AsNoTracking().SingleOrDefaultAsync(x => x.OrganizationId == organizationId && x.Id == engagementId, ct)
+            ?? throw new NotFoundException("Quan hệ cộng tác", engagementId);
+        var driverAccountId = await db.Drivers.Where(x => x.Id == candidate.DriverId).Select(x => x.AccountId).SingleAsync(ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await access.LockAccountAsync(driverAccountId, ct);
         await access.LockAsync(organizationId, ct);
         var account = await access.AccountAsync(ct);
         var item = await db.Engagements.SingleOrDefaultAsync(x => x.OrganizationId == organizationId && x.Id == engagementId, ct)
             ?? throw new NotFoundException("Quan hệ cộng tác", engagementId);
         if (!await db.Drivers.AnyAsync(x => x.Id == item.DriverId && x.AccountId == account.AccountId, ct))
             await access.OrganizationAsync(organizationId, "manage", ct);
+        if (item.EndedAt != null || item.RevokedAt != null) return;
         if (await obligations.HasDriverObligationsAsync(organizationId, item.DriverId, ct))
             throw new ConflictException("Tài xế còn nghĩa vụ vận chuyển chưa giải quyết.");
         if (item.AcceptedAt == null) item.RevokedAt ??= DateTime.UtcNow;
-        else item.EndedAt ??= DateTime.UtcNow;
+        else
+        {
+            var driver = await db.Drivers.SingleAsync(x => x.Id == item.DriverId, ct);
+            item.EndedAt = DateTime.UtcNow;
+            item.DriverNameSnapshot = driver.FullName;
+            item.DriverPhoneSnapshot = driver.ContactPhone;
+            item.DriverAddressSnapshot = driver.ContactAddress;
+        }
         access.Audit(organizationId, item.Id, "driver.end");
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
 
-    private static DriverResponse Response(Driver x) => new(x.Id, x.AccountId, x.FullName, x.ReviewStatus, x.ReviewNote);
+    private static DriverResponse Response(Driver x) => new(x.Id, x.AccountId, x.FullName, x.ReviewStatus, x.ReviewNote,
+        x.ContactPhone, x.ContactAddress, !string.IsNullOrWhiteSpace(x.ContactPhone) && !string.IsNullOrWhiteSpace(x.ContactAddress));
     private async Task<int> OccupancyAsync(Guid organizationId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;

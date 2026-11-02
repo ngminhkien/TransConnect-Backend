@@ -26,4 +26,12 @@ public abstract class NotificationMessage : BaseEntity
     public DateTime? ProcessingStartedAt { get; set; }
 
     public string? LastError { get; set; }
+    public string? SourceType { get; set; }
+    public Guid? SourceId { get; set; }
+    public DateTime? DeliverBefore { get; set; }
+    public string RetentionCategory { get; set; } = "General";
+    public DateTime? TerminalAt { get; set; }
+    public DateTime? BodyPurgedAt { get; set; }
+    public Guid? DispatchLease { get; set; }
+    public DateTime? EligibilityCheckedAt { get; set; }
 }
