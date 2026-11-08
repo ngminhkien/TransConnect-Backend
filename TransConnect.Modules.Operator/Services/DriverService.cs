@@ -208,14 +208,14 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
     }
 
     private async Task<EngagementResponse> AcceptEmailInvitationAsync(
-        OrganizationInvitation candidate, AccountSummary account, CancellationToken ct)
+        OrganizationInvitation candidate, AccountSummary account, Func<AppException> invalid, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await access.LockAsync(candidate.OrganizationId, ct);
         var invitation = await db.Invitations.SingleAsync(x => x.Id == candidate.Id, ct);
         if (invitation.AcceptedAt != null || invitation.RevokedAt != null || invitation.ExpiresAt <= DateTime.UtcNow
             || invitation.Email != account.Email.ToLowerInvariant())
-            throw new UnauthorizedAppException("Lời mời không hợp lệ hoặc không dành cho tài khoản này.");
+            throw invalid();
         if (!await db.Organizations.AnyAsync(x => x.Id == invitation.OrganizationId && x.ReviewStatus == "Approved", ct))
             throw new ConflictException("Tổ chức chưa được phê duyệt.");
         var driver = await db.Drivers.SingleOrDefaultAsync(x => x.AccountId == account.AccountId && x.ReviewStatus == "Approved", ct)
@@ -244,19 +244,46 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
     {
         var account = await access.OperatorAsync(ct);
         var hash = InvitationTokens.Hash(request.Token);
+        static AppException invalid() => new UnauthorizedAppException("Lời mời không hợp lệ hoặc không dành cho tài khoản này.");
         var emailInvitation = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(
             x => x.TokenHash == hash && x.Role == "Driver", ct);
         if (emailInvitation is not null)
-            return await AcceptEmailInvitationAsync(emailInvitation, account, ct);
-        var candidate = await db.Engagements.AsNoTracking().SingleOrDefaultAsync(x => x.TokenHash == hash, ct)
+            return await AcceptEmailInvitationAsync(emailInvitation, account, invalid, ct);
+        var engagementId = await db.Engagements.AsNoTracking().Where(x => x.TokenHash == hash)
+            .Select(x => (Guid?)x.Id).SingleOrDefaultAsync(ct)
             ?? throw new UnauthorizedAppException("Lời mời không hợp lệ.");
+        return await AcceptEngagementAsync(engagementId, account, invalid, ct);
+    }
+
+    // Accepting by id relies on the same account binding as the token flow; invalid states return 409
+    // instead of 401 so the client does not treat them as an expired session.
+    public async Task<EngagementResponse> AcceptByIdAsync(Guid id, CancellationToken ct)
+    {
+        var account = await access.OperatorAsync(ct);
+        static AppException invalid() => new ConflictException("Lời mời đã hết hạn hoặc không còn hiệu lực.");
+        var email = account.Email.ToLowerInvariant();
+        var emailInvitation = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(
+            x => x.Id == id && x.Role == "Driver" && x.Email == email, ct);
+        if (emailInvitation is not null)
+            return await AcceptEmailInvitationAsync(emailInvitation, account, invalid, ct);
+        var owned = await db.Engagements.AsNoTracking().AnyAsync(x => x.Id == id
+            && db.Drivers.Any(d => d.Id == x.DriverId && d.AccountId == account.AccountId), ct);
+        if (!owned) throw new NotFoundException("Lời mời", id);
+        return await AcceptEngagementAsync(id, account, invalid, ct);
+    }
+
+    private async Task<EngagementResponse> AcceptEngagementAsync(
+        Guid engagementId, AccountSummary account, Func<AppException> invalid, CancellationToken ct)
+    {
+        var organizationId = await db.Engagements.AsNoTracking().Where(x => x.Id == engagementId)
+            .Select(x => x.OrganizationId).SingleAsync(ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await access.LockAsync(candidate.OrganizationId, ct);
-        var item = await db.Engagements.SingleAsync(x => x.Id == candidate.Id, ct);
+        await access.LockAsync(organizationId, ct);
+        var item = await db.Engagements.SingleAsync(x => x.Id == engagementId, ct);
         if (item.AcceptedAt != null || item.EndedAt != null || item.RevokedAt != null || item.ExpiresAt <= DateTime.UtcNow
             || !await db.Drivers.AnyAsync(x => x.Id == item.DriverId && x.AccountId == account.AccountId && x.ReviewStatus == "Approved", ct)
             || !await db.Organizations.AnyAsync(x => x.Id == item.OrganizationId && x.ReviewStatus == "Approved", ct))
-            throw new UnauthorizedAppException("Lời mời không hợp lệ hoặc không dành cho tài khoản này.");
+            throw invalid();
         item.AcceptedAt = DateTime.UtcNow;
         access.Audit(item.OrganizationId, item.Id, "driver.accept");
         await db.SaveChangesAsync(ct);

@@ -15,6 +15,7 @@ public interface IDriverService
     Task<InvitationResponse> InviteAsync(Guid organizationId, Guid driverId, CancellationToken ct);
     Task<InvitationResponse> InviteByEmailAsync(Guid organizationId, InviteDriverRequest request, CancellationToken ct);
     Task<EngagementResponse> AcceptAsync(AcceptInvitationRequest request, CancellationToken ct);
+    Task<EngagementResponse> AcceptByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<EngagementResponse>> ListAsync(Guid organizationId, CancellationToken ct);
     Task EndAsync(Guid organizationId, Guid engagementId, CancellationToken ct);
 }

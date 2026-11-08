@@ -270,6 +270,44 @@ public class FoundationTests
     }
 
     [Fact]
+    public async Task TC_FOUNDATION_003B_Driver_accepts_listed_invitations_by_id_without_token()
+    {
+        using var app = new Fixture();
+        await app.InitializeAsync();
+        var driver = await app.User("id-driver@example.com");
+        var other = await app.User("id-other@example.com");
+        var direct = await app.ApprovedOrganization("ID-DIRECT", "id-owner-a@example.com");
+        var byEmail = await app.ApprovedOrganization("ID-EMAIL", "id-owner-b@example.com");
+        app.ActAs(driver);
+        var profileId = (await app.Post("/drivers", new { fullName = "Driver Id" })).GetProperty("id").GetGuid();
+        app.Admin();
+        await app.Post($"/drivers/{profileId}/review", new { approved = true, note = "Reviewed driver documents." });
+        var engagementId = (await app.Post($"/organizations/{direct}/drivers/{profileId}/invitations", new { }))
+            .GetProperty("id").GetGuid();
+        var invitationId = (await app.Post($"/organizations/{byEmail}/driver-invitations", new { email = driver.Email }))
+            .GetProperty("id").GetGuid();
+
+        app.ActAs(other);
+        await app.Post($"/drivers/invitations/{engagementId}/accept", new { }, HttpStatusCode.NotFound);
+        await app.Post($"/drivers/invitations/{invitationId}/accept", new { }, HttpStatusCode.NotFound);
+
+        app.ActAs(driver);
+        Assert.Contains((await app.Get("/drivers/me/collaborations")).EnumerateArray(),
+            x => x.GetProperty("id").GetGuid() == engagementId);
+        Assert.Contains((await app.Get("/operator/invitations")).EnumerateArray(),
+            x => x.GetProperty("id").GetGuid() == invitationId);
+        await app.Post($"/drivers/invitations/{engagementId}/accept", new { });
+        await app.Post($"/drivers/invitations/{invitationId}/accept", new { });
+        await app.Post($"/drivers/invitations/{engagementId}/accept", new { }, HttpStatusCode.Conflict);
+        await app.Post($"/drivers/invitations/{invitationId}/accept", new { }, HttpStatusCode.Conflict);
+        await app.Post($"/drivers/invitations/{Guid.NewGuid()}/accept", new { }, HttpStatusCode.NotFound);
+
+        using var scope = app.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OperatorDbContext>();
+        Assert.Equal(2, await db.Engagements.CountAsync(x => x.AcceptedAt != null && x.EndedAt == null));
+    }
+
+    [Fact]
     public async Task TC_FOUNDATION_004_Vehicle_has_one_operator_and_preserves_history()
     {
         using var app = new Fixture();

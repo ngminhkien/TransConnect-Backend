@@ -56,6 +56,10 @@ public sealed class DriversController(IDriverService service) : ControllerBase
         return Ok(ApiResponse<EngagementResponse>.Success(result));
     }
 
+    [HttpPost("invitations/{id:guid}/accept")]
+    public async Task<ActionResult<ApiResponse<EngagementResponse>>> AcceptById(Guid id, CancellationToken ct)
+        => Ok(ApiResponse<EngagementResponse>.Success(await service.AcceptByIdAsync(id, ct)));
+
     [HttpPost("/organizations/{organizationId:guid}/drivers/{driverId:guid}/invitations")]
     public async Task<ActionResult<ApiResponse<InvitationResponse>>> Invite(Guid organizationId, Guid driverId, CancellationToken ct)
     {
