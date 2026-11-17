@@ -9,6 +9,37 @@ namespace TransConnect.Tests;
 public class MigrationTests
 {
     [Fact]
+    public void TC_DB_M2_001_Transport_migration_matches_model_and_seeds_three_service_types()
+    {
+        using var db = new TransConnect.Modules.Transport.Persistence.TransportDbContext(
+            new DbContextOptionsBuilder<TransConnect.Modules.Transport.Persistence.TransportDbContext>()
+            .UseSqlServer("Server=unused;Database=ScriptOnly;Integrated Security=true").Options);
+        Assert.False(db.Database.HasPendingModelChanges());
+        var script = db.GetService<IMigrator>().GenerateScript();
+        Assert.Contains("CREATE TABLE [transport].[ServiceRegistrations]", script);
+        Assert.Contains("FIXED_ROUTE_COACH", script);
+        Assert.Contains("FREIGHT_TRUCK", script);
+        Assert.Contains("CHARTER", script);
+        Assert.Contains("WHERE [Status] <> 'Withdrawn' AND [DeletedAt] IS NULL", script);
+        Assert.DoesNotContain("[operator]", script);
+        Assert.DoesNotContain("DROP TABLE", script);
+    }
+
+    [Fact]
+    public void TC_DB_M2_002_Operator_service_types_migration_only_adds_nullable_column()
+    {
+        using var db = new TransConnect.Modules.Operator.Persistence.OperatorDbContext(
+            new DbContextOptionsBuilder<TransConnect.Modules.Operator.Persistence.OperatorDbContext>()
+            .UseSqlServer("Server=unused;Database=ScriptOnly;Integrated Security=true").Options);
+        var migrations = db.Database.GetMigrations().ToList();
+        var index = migrations.FindIndex(x => x.EndsWith("_OrganizationRequestedServiceTypes"));
+        var script = db.GetService<IMigrator>().GenerateScript(migrations[index - 1], migrations[index]);
+        Assert.Contains("ADD [RequestedServiceTypes] nvarchar(200) NULL", script);
+        Assert.DoesNotContain("UPDATE", script);
+        Assert.DoesNotContain("DELETE", script);
+    }
+
+    [Fact]
     public void TC_DB_004_Operator_migration_preflights_conflicts_and_preserves_relationship_history()
     {
         using var db = new TransConnect.Modules.Operator.Persistence.OperatorDbContext(

@@ -31,6 +31,8 @@ public static class OperatorModuleExtensions
         services.AddScoped<TransConnect.Common.Notifications.IEmailDeliveryGuard, InvitationEmailGuard>();
         services.AddScoped<TransConnect.Common.Notifications.IEmailDeliveryGuard, EngagementEmailGuard>();
         services.TryAddScoped<ITransportObligations, FoundationTransportObligations>();
+        services.AddScoped<ITransportOrganizationAccess, TransportOrganizationAccess>();
+        services.TryAddScoped<IServiceRegistrationIntake, NoServiceRegistrationIntake>();
         return services;
     }
 }

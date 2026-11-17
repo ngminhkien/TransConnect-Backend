@@ -69,6 +69,10 @@ public sealed class OrganizationsController(IOrganizationService service) : Cont
         return Ok(ApiResponse<MemberResponse>.Success(result));
     }
 
+    [HttpPost("invitations/{invitationId:guid}/accept")]
+    public async Task<ActionResult<ApiResponse<MemberResponse>>> AcceptById(Guid invitationId, CancellationToken ct) =>
+        Ok(ApiResponse<MemberResponse>.Success(await service.AcceptByIdAsync(invitationId, ct)));
+
     [HttpDelete("{id:guid}/invitations/{invitationId:guid}")]
     public async Task<ActionResult<ApiResponse<object>>> Revoke(Guid id, Guid invitationId, CancellationToken ct)
     {

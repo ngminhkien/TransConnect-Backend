@@ -19,4 +19,6 @@ public class Organization : BaseEntity
     public string? RegisteredAddress { get; set; }
     public string? ContactPhone { get; set; }
     public string? ContactEmail { get; set; }
+    // Q-M2-SERVICE-007B: service types declared at submission (comma-separated codes); not a licence.
+    public string? RequestedServiceTypes { get; set; }
 }

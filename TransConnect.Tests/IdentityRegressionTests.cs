@@ -236,7 +236,7 @@ public class IdentityRegressionTests
     }
 
     [Fact]
-    public async Task TC_RBAC_003_Seeder_restores_default_admin_role_after_soft_delete()
+    public async Task TC_RBAC_003_Seeder_recreates_roles_and_create_admin_restores_admin_role_after_soft_delete()
     {
         using var factory = new ApiFactory();
         using var client = factory.CreateApiClient();
@@ -244,7 +244,8 @@ public class IdentityRegressionTests
         var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         await db.Database.EnsureCreatedAsync();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        await IdentitySeeder.SeedAsync(db, hasher);
+        Assert.Equal(AdminBootstrapOutcome.Created, await AdminBootstrapper.CreateOrRestoreAsync(
+            db, hasher, "Root@Example.test", "Root", "correct-horse-battery"));
         var admin = await db.Users.SingleAsync();
         var originalHash = admin.PasswordHash;
         var roles = scope.ServiceProvider.GetRequiredService<IRoleService>();
@@ -252,15 +253,79 @@ public class IdentityRegressionTests
         foreach (var role in await db.Roles.ToListAsync()) await roles.DeleteAsync(role.Id);
         foreach (var permission in await db.Permissions.ToListAsync()) await permissions.DeleteAsync(permission.Id);
         db.ChangeTracker.Clear();
-        await IdentitySeeder.SeedAsync(db, hasher);
-        await IdentitySeeder.SeedAsync(db, hasher);
+        await IdentitySeeder.SeedAsync(db);
+        await IdentitySeeder.SeedAsync(db);
+        // Seeder không tự gán role cho ai; khôi phục chỉ qua create-admin với email cụ thể.
+        Assert.DoesNotContain("Admin", await permissions.GetRoleNamesAsync(admin.Id));
+        Assert.Equal(AdminBootstrapOutcome.RoleRestored, await AdminBootstrapper.CreateOrRestoreAsync(
+            db, hasher, "root@example.test", "ignored", password: null));
         Assert.Contains("Admin", await permissions.GetRoleNamesAsync(admin.Id));
         Assert.Contains("roles.manage", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Equal(2, await db.Roles.CountAsync());
-        Assert.Equal(6, await db.Permissions.CountAsync());
+        Assert.Equal(7, await db.Permissions.CountAsync());
         Assert.Contains("locations.manage", await permissions.GetPermissionCodesAsync(admin.Id));
+        Assert.Contains("services.review", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Contains("organizations.manage", await permissions.GetPermissionCodesAsync(admin.Id));
         Assert.Equal(originalHash, (await db.Users.SingleAsync()).PasswordHash);
+    }
+
+    [Fact]
+    public void TC_RBAC_005_Create_admin_command_parses_args_and_rejects_password_argument()
+    {
+        Assert.Null(TransConnect.Host.Commands.CreateAdminCommand.TryParse(["--urls", "x"], out var plain));
+        Assert.Equal(["--urls", "x"], plain);
+
+        var command = TransConnect.Host.Commands.CreateAdminCommand.TryParse(
+            ["--environment", "Development", "create-admin", "--email", "a@b.test", "--name", "Root"], out var hostArgs);
+        Assert.NotNull(command);
+        Assert.Null(command.Error);
+        Assert.Equal("a@b.test", command.Email);
+        Assert.Equal("Root", command.FullName);
+        Assert.Equal(["--environment", "Development"], hostArgs);
+
+        Assert.NotNull(TransConnect.Host.Commands.CreateAdminCommand.TryParse(
+            ["create-admin", "--email", "a@b.test", "--password", "secret"], out _)!.Error);
+        Assert.NotNull(TransConnect.Host.Commands.CreateAdminCommand.TryParse(["create-admin"], out _)!.Error);
+    }
+
+    [Fact]
+    public async Task TC_RBAC_004_Seeder_creates_no_accounts_and_create_admin_enforces_password_rules()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateApiClient();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        await db.Database.EnsureCreatedAsync();
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+        await IdentitySeeder.SeedAsync(db);
+        Assert.Equal(0, await db.Users.CountAsync());
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            AdminBootstrapper.CreateOrRestoreAsync(db, hasher, "a@example.test", "A", password: null));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            AdminBootstrapper.CreateOrRestoreAsync(db, hasher, "a@example.test", "A", "12345"));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            AdminBootstrapper.CreateOrRestoreAsync(db, hasher, "a@example.test", "A", new string('a', 101)));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            AdminBootstrapper.CreateOrRestoreAsync(db, hasher, "not-an-email", "A", "correct-horse-battery"));
+        Assert.Equal(0, await db.Users.CountAsync());
+
+        Assert.Equal(AdminBootstrapOutcome.Created, await AdminBootstrapper.CreateOrRestoreAsync(
+            db, hasher, " A@Example.test ", "  Quản trị  ", "correct-horse-battery"));
+        var admin = await db.Users.SingleAsync();
+        Assert.Equal("a@example.test", admin.Email);
+        Assert.Equal(AdminBootstrapper.InternalAdminGroup, admin.AccountGroup);
+        Assert.Equal("Quản trị", admin.FullName);
+        Assert.NotNull(admin.EmailVerifiedAt);
+        Assert.True(hasher.Verify("correct-horse-battery", admin.PasswordHash!));
+
+        // Chạy lại với mật khẩu khác không được ghi đè mật khẩu đang dùng.
+        var hash = admin.PasswordHash;
+        Assert.Equal(AdminBootstrapOutcome.AlreadyAdmin, await AdminBootstrapper.CreateOrRestoreAsync(
+            db, hasher, "a@example.test", "A", "another-password-123"));
+        db.ChangeTracker.Clear();
+        Assert.Equal(hash, (await db.Users.SingleAsync()).PasswordHash);
     }
 
     private sealed class UniqueReadGate(string table) : DbCommandInterceptor

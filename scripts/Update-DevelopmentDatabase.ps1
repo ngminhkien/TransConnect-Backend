@@ -2,6 +2,8 @@ param(
     [string]$DotnetPath = 'dotnet',
     [switch]$IncludeComplianceDemo,
     [switch]$IncludeLocations,
+    # M2: Operator (RequestedServiceTypes column) always runs; Transport only with this switch, plus seat-layout template seed.
+    [switch]$IncludeTransport,
     [switch]$ProbeOnly
 )
 
@@ -56,11 +58,17 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Build failed. No migrations were started.' }
     $modules = @('Identity', 'Notification', 'Operator')
     if ($IncludeLocations) { $modules += 'Locations' }
+    if ($IncludeTransport) { $modules += 'Transport' }
     if ($IncludeComplianceDemo -or $config.ComplianceDemo.Enabled) { $modules += 'Compliance' }
     foreach ($module in $modules) {
         Write-Host "Applying Development migrations for $module..."
         & $efExecutable database update --project "TransConnect.Modules.$module" --startup-project TransConnect.Host --context "$($module)DbContext" --no-build
         if ($LASTEXITCODE -ne 0) { throw "Migration failed for $module. Later modules were not run; inspect migration history before retrying." }
+    }
+    if ($IncludeTransport) {
+        Write-Host 'Seeding Transport seat-layout templates...'
+        & $dotnetExecutable run --project TransConnect.Host --no-build -- seed-transport
+        if ($LASTEXITCODE -ne 0) { throw 'Transport template seeding failed after migrations; rerun seed-transport after checking the error.' }
     }
     Write-Host 'Development migrations completed. Demo feature configuration is unchanged.'
 }

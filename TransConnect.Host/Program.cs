@@ -11,6 +11,7 @@ using TransConnect.Common.ExceptionHandling;
 using TransConnect.Common.Notifications;
 using TransConnect.Common.Options;
 using TransConnect.Common.Response;
+using TransConnect.Host.Commands;
 using TransConnect.Host.Options;
 using TransConnect.Host.Configuration;
 using TransConnect.Modules.Identity;
@@ -25,6 +26,8 @@ using TransConnect.Modules.Compliance;
 using TransConnect.Modules.Compliance.Persistence;
 using TransConnect.Modules.Locations;
 using TransConnect.Modules.Locations.Persistence;
+using TransConnect.Modules.Transport;
+using TransConnect.Modules.Transport.Persistence;
 
 const string CorsPolicyName = "TransConnectClients";
 
@@ -38,7 +41,10 @@ try
 {
     Log.Information("Đang khởi động TransConnect.Host...");
 
-    var builder = WebApplication.CreateBuilder(args);
+    // Lệnh vận hành (vd. create-admin) chạy trên cùng cấu hình/DI rồi thoát, không mở HTTP.
+    var seedTransport = SeedTransportCommand.TryParse(args, out var commandArgs);
+    var createAdminCommand = CreateAdminCommand.TryParse(commandArgs, out var hostArgs);
+    var builder = WebApplication.CreateBuilder(hostArgs);
     DevelopmentSettings.Apply(builder);
     if (builder.Environment.IsDevelopment())
         Log.Information("Development application settings: appsettings.json + appsettings.Development.json; User Secrets/environment/CLI application overrides are disabled.");
@@ -53,6 +59,7 @@ try
     builder.Services.AddNotificationModule(builder.Configuration);
     builder.Services.AddOperatorModule(builder.Configuration);
     builder.Services.AddLocationsModule(builder.Configuration);
+    builder.Services.AddTransportModule(builder.Configuration);
     builder.Services.AddComplianceModule(builder.Configuration, builder.Environment);
 
     // Cross-cutting (TransConnect.Common)
@@ -98,7 +105,8 @@ try
         .AddVietnameseApiValidation()
         .AddApplicationPart(typeof(AuthController).Assembly)
         .AddApplicationPart(typeof(TransConnect.Modules.Operator.Controllers.OrganizationsController).Assembly)
-        .AddApplicationPart(typeof(LocationsDbContext).Assembly);
+        .AddApplicationPart(typeof(LocationsDbContext).Assembly)
+        .AddApplicationPart(typeof(TransportDbContext).Assembly);
 
     // Remove automatic discovery too: demo routes must not exist when disabled.
     var complianceAssembly = typeof(TransConnect.Modules.Compliance.Controllers.DemoDocumentsController).Assembly;
@@ -198,8 +206,25 @@ try
     // Fail before Development migrations/seeding, not at the first auth/email request.
     app.Services.GetRequiredService<Microsoft.Extensions.Options.IStartupValidator>().Validate();
 
-    // UseExceptionHandler phải đứng ĐẦU pipeline: middleware đăng ký trước nó (request
-    // logging, https redirect...) mà ném exception thì sẽ không được handler bắt.
+    if (seedTransport)
+    {
+        Environment.ExitCode = await SeedTransportCommand.RunAsync(app.Services);
+        return;
+    }
+
+    if (createAdminCommand is not null)
+    {
+        Environment.ExitCode = await createAdminCommand.RunAsync(app.Services);
+        return;
+    }
+
+    // Request logging bọc ngoài exception handler để ghi đúng status cuối cùng client nhận
+    // (trước đây exception nghiệp vụ 401/404... đi qua logger trước nên bị ghi thành 500).
+    // Bản thân middleware này không ném lỗi nghiệp vụ.
+    app.UseSerilogRequestLogging(options => options.GetLevel = RequestLogLevel.Get);
+
+    // UseExceptionHandler đứng trước mọi middleware còn lại: middleware đăng ký trước nó
+    // (https redirect...) mà ném exception thì sẽ không được handler bắt.
     app.UseExceptionHandler();
     app.UseApiStatusCodePages();
 
@@ -212,9 +237,9 @@ try
         using var scope = app.Services.CreateScope();
 
         var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         await identityDbContext.Database.MigrateAsync();
-        await IdentitySeeder.SeedAsync(identityDbContext, passwordHasher);
+        // Chỉ seed role/permission; tài khoản Admin tạo bằng lệnh create-admin.
+        await IdentitySeeder.SeedAsync(identityDbContext);
 
         var notificationDbContext = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
         await notificationDbContext.Database.MigrateAsync();
@@ -223,6 +248,13 @@ try
         // foundation acceptance database just by starting a new Development host.
         if (builder.Configuration.GetValue<bool>("Locations:ApplyMigrationsOnStartup"))
             await scope.ServiceProvider.GetRequiredService<LocationsDbContext>().Database.MigrateAsync();
+        // Transport (M2) cũng opt-in: chỉ migrate/seed mẫu sơ đồ ghế khi bật cờ.
+        if (builder.Configuration.GetValue<bool>(TransportModuleExtensions.ApplyMigrationsSetting))
+        {
+            var transportDbContext = scope.ServiceProvider.GetRequiredService<TransportDbContext>();
+            await transportDbContext.Database.MigrateAsync();
+            await TransportSeeder.SeedAsync(transportDbContext);
+        }
         if (complianceDemoEnabled)
             await scope.ServiceProvider.GetRequiredService<ComplianceDbContext>().Database.MigrateAsync();
 
@@ -252,7 +284,6 @@ try
         });
     }
 
-    app.UseSerilogRequestLogging();
     app.UseMiddleware<ClientRequestCancellationMiddleware>(
         (Func<Exception, CancellationToken, bool>)RequestCancellation.IsClientCancellation);
 

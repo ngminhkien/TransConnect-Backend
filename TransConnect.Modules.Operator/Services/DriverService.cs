@@ -250,6 +250,35 @@ public sealed class DriverService(OperatorDbContext db, OperatorAccess access, I
             return await AcceptEmailInvitationAsync(emailInvitation, account, ct);
         var candidate = await db.Engagements.AsNoTracking().SingleOrDefaultAsync(x => x.TokenHash == hash, ct)
             ?? throw new UnauthorizedAppException("Lời mời không hợp lệ.");
+        return await AcceptEngagementAsync(candidate, account, ct);
+    }
+
+    // Logged-in acceptance from the received e-mail invitation list (verified account e-mail must match).
+    public async Task<EngagementResponse> AcceptInvitationByIdAsync(Guid invitationId, CancellationToken ct)
+    {
+        var account = await access.OperatorAsync(ct);
+        var email = account.Email.ToLowerInvariant();
+        var invitation = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(
+                x => x.Id == invitationId && x.Role == "Driver" && x.Email == email, ct)
+            ?? throw new NotFoundException("Lời mời", invitationId);
+        return await AcceptEmailInvitationAsync(invitation, account, ct);
+    }
+
+    // Logged-in acceptance of a direct invitation shown in the driver's own collaboration list.
+    public async Task<EngagementResponse> AcceptEngagementByIdAsync(Guid engagementId, CancellationToken ct)
+    {
+        var account = await access.OperatorAsync(ct);
+        var candidate = await (from e in db.Engagements.AsNoTracking()
+                join d in db.Drivers on e.DriverId equals d.Id
+                where e.Id == engagementId && d.AccountId == account.AccountId
+                select e).SingleOrDefaultAsync(ct)
+            ?? throw new NotFoundException("Lời mời cộng tác", engagementId);
+        return await AcceptEngagementAsync(candidate, account, ct);
+    }
+
+    private async Task<EngagementResponse> AcceptEngagementAsync(
+        DriverEngagement candidate, AccountSummary account, CancellationToken ct)
+    {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await access.LockAsync(candidate.OrganizationId, ct);
         var item = await db.Engagements.SingleAsync(x => x.Id == candidate.Id, ct);

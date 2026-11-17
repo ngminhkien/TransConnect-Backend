@@ -3,6 +3,9 @@ using Microsoft.Extensions.Options;
 using TransConnect.Base.Exceptions;
 using TransConnect.Common.Auth;
 using TransConnect.Common.Notifications;
+using TransConnect.Common.Transport;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TransConnect.Modules.Operator.Dto.Requests;
 using TransConnect.Modules.Operator.Dto.Responses;
 using TransConnect.Modules.Operator.Entities;
@@ -12,11 +15,29 @@ using TransConnect.Modules.Operator.Persistence;
 namespace TransConnect.Modules.Operator.Services;
 
 public sealed class OrganizationService(OperatorDbContext db, OperatorAccess access,
-    ICurrentUser current, IEmailQueue emails, IOptions<OperatorOptions> options, IAccountDirectory accounts) : IOrganizationService
+    ICurrentUser current, IEmailQueue emails, IOptions<OperatorOptions> options, IAccountDirectory accounts,
+    IServiceRegistrationIntake? intake = null, ILogger<OrganizationService>? logger = null) : IOrganizationService
 {
+    public static string? JoinServiceTypes(IReadOnlyList<string>? codes) =>
+        codes is null || codes.Count == 0 ? null : string.Join(',', codes);
+
+    public static IReadOnlyList<string> SplitServiceTypes(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? [] : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static IReadOnlyList<string> ValidServiceTypes(IReadOnlyList<string>? codes)
+    {
+        var list = (codes ?? []).Select(x => x?.Trim() ?? "").Where(x => x.Length > 0).Distinct().ToList();
+        if (list.Count == 0)
+            throw new ValidationAppException(new Dictionary<string, string[]> { ["requestedServiceTypes"] = ["Chọn ít nhất một loại dịch vụ đăng ký."] });
+        if (list.Any(x => !ServiceTypeCodes.IsKnown(x)))
+            throw new ValidationAppException(new Dictionary<string, string[]> { ["requestedServiceTypes"] = ["Loại dịch vụ không hợp lệ."] });
+        return ServiceTypeCodes.All.Where(list.Contains).ToList();
+    }
+
     public async Task<OrganizationResponse> SubmitAsync(SubmitOrganizationRequest request, CancellationToken ct)
     {
         ValidateSubmission(request);
+        var serviceTypes = ValidServiceTypes(request.RequestedServiceTypes);
         var account = await access.AccountAsync(ct);
         if (account.Group == AccountGroups.InternalAdmin) await access.AdminAsync(ct);
         else account = await access.OperatorAsync(ct);
@@ -33,8 +54,10 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
             Name = request.Name.Trim(), RegistrationNumber = request.RegistrationNumber.Trim().ToUpperInvariant(),
             ProposedOwnerEmail = account.Group == AccountGroups.Operator ? account.Email : request.OwnerEmail.Trim().ToLowerInvariant(),
             EmployeeLimit = options.Value.DefaultEmployeeLimit,
-            DriverLimit = options.Value.DefaultDriverLimit
+            DriverLimit = options.Value.DefaultDriverLimit,
+            RequestedServiceTypes = JoinServiceTypes(serviceTypes)
         };
+        ApplyOptionalProfile(org, request);
         if (await db.Organizations.IgnoreQueryFilters().AnyAsync(x => x.RegistrationNumber == org.RegistrationNumber, ct))
             throw new ConflictException("Mã đăng ký tổ chức đã tồn tại.");
         db.Organizations.Add(org);
@@ -54,6 +77,18 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         ProfileValidation.Check(request);
         if (!System.Text.RegularExpressions.Regex.IsMatch(request.RegistrationNumber, @"\A(?:[0-9]{10}|[0-9]{13})\z"))
             throw new ValidationAppException(new Dictionary<string, string[]> { ["registrationNumber"] = ["Mã số thuế phải gồm 10 hoặc 13 chữ số."] });
+        if (!string.IsNullOrWhiteSpace(request.ContactEmail)
+            && !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(request.ContactEmail.Trim()))
+            throw new ValidationAppException(new Dictionary<string, string[]> { ["contactEmail"] = ["Email không hợp lệ."] });
+    }
+
+    // Q-PARTNER-REG-D1 B: chỉ ghi trường có giá trị; trường bỏ trống giữ nguyên (nộp lại không xóa dữ liệu đã có).
+    private static void ApplyOptionalProfile(Organization org, SubmitOrganizationRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.LegalEntityType)) org.LegalEntityType = request.LegalEntityType.Trim();
+        if (!string.IsNullOrWhiteSpace(request.RegisteredAddress)) org.RegisteredAddress = request.RegisteredAddress.Trim();
+        if (!string.IsNullOrWhiteSpace(request.ContactPhone)) org.ContactPhone = request.ContactPhone.Trim();
+        if (!string.IsNullOrWhiteSpace(request.ContactEmail)) org.ContactEmail = request.ContactEmail.Trim().ToLowerInvariant();
     }
 
     private async Task CheckApplicantAsync(Guid accountId, CancellationToken ct)
@@ -66,6 +101,7 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
     public async Task<OrganizationResponse> ResubmitAsync(Guid id, SubmitOrganizationRequest request, CancellationToken ct)
     {
         ValidateSubmission(request);
+        var serviceTypes = ValidServiceTypes(request.RequestedServiceTypes);
         var account = await access.AccountAsync(ct);
         var legacyAdmin = account.Group == AccountGroups.InternalAdmin;
         if (legacyAdmin) await access.AdminAsync(ct);
@@ -89,6 +125,8 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
             throw new ConflictException("Mã số thuế đã tồn tại.");
         org.Name = request.Name.Trim();
         org.RegistrationNumber = request.RegistrationNumber;
+        org.RequestedServiceTypes = JoinServiceTypes(serviceTypes);
+        ApplyOptionalProfile(org, request);
         org.ReviewStatus = "Pending";
         db.ProfileReviews.Add(new() { SubjectType = "Organization", SubjectId = id, Status = "Pending", ActorAccountId = account.AccountId });
         access.Audit(id, id, "organization.resubmit");
@@ -166,6 +204,17 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         }
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+        if (request.Approved && intake is not null && SplitServiceTypes(org.RequestedServiceTypes) is { Count: > 0 } declared)
+        {
+            // Separate module/DbContext: the approval is already committed. A failure here only means the
+            // Owner registers services manually, so it must not turn a successful approval into an error.
+            try { await intake.CreatePendingAsync(org.Id, declared, admin.AccountId, ct); }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                (logger ?? NullLogger<OrganizationService>.Instance).LogWarning(ex,
+                    "Organization {OrganizationId} approved but service registrations were not created.", org.Id);
+            }
+        }
         return Response(org);
     }
 
@@ -236,6 +285,24 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
         var hash = InvitationTokens.Hash(request.Token);
         var candidate = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(x => x.TokenHash == hash && x.Role != "Driver", ct)
             ?? throw new UnauthorizedAppException("Lời mời không hợp lệ.");
+        return await AcceptCandidateAsync(candidate, account, ct);
+    }
+
+    // Logged-in acceptance from the received list: the verified account email replaces the emailed token
+    // as proof of ownership; every other check is shared with the token path.
+    public async Task<MemberResponse> AcceptByIdAsync(Guid invitationId, CancellationToken ct)
+    {
+        var account = await access.OperatorAsync(ct);
+        var email = account.Email.ToLowerInvariant();
+        var candidate = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(
+                x => x.Id == invitationId && x.Role != "Driver" && x.Email == email, ct)
+            ?? throw new NotFoundException("Lời mời", invitationId);
+        return await AcceptCandidateAsync(candidate, account, ct);
+    }
+
+    private async Task<MemberResponse> AcceptCandidateAsync(
+        OrganizationInvitation candidate, AccountSummary account, CancellationToken ct)
+    {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await access.LockAccountAsync(account.AccountId, ct);
         await access.LockAsync(candidate.OrganizationId, ct);
@@ -368,6 +435,7 @@ public sealed class OrganizationService(OperatorDbContext db, OperatorAccess acc
     private static OrganizationResponse Response(Organization x) =>
         new(x.Id, x.Name, x.RegistrationNumber, x.ProposedOwnerEmail, x.ReviewStatus, x.ReviewNote, x.EmployeeLimit, x.DriverLimit,
             x.LegalEntityType, x.RegisteredAddress, x.ContactPhone, x.ContactEmail,
-            x.LegalEntityType != null && x.RegisteredAddress != null && x.ContactPhone != null && x.ContactEmail != null, x.CreatedByUserId);
+            x.LegalEntityType != null && x.RegisteredAddress != null && x.ContactPhone != null && x.ContactEmail != null, x.CreatedByUserId,
+            SplitServiceTypes(x.RequestedServiceTypes));
     private static MemberResponse Response(OrganizationMember x) => new(x.Id, x.AccountId, x.Role, x.IsActive);
 }

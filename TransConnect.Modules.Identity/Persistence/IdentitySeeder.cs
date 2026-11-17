@@ -4,12 +4,11 @@ using TransConnect.Modules.Identity.Services;
 
 namespace TransConnect.Modules.Identity.Persistence;
 
-// Seed roles/permissions/admin mặc định để có thể test ngay sau khi tạo DB, tránh
-// tình trạng "trứng-gà" (cần Admin để gán quyền, nhưng chưa có ai có quyền Admin).
+// Seed roles/permissions mặc định. KHÔNG tạo tài khoản: Admin đầu tiên được tạo bằng lệnh
+// `create-admin` (AdminBootstrapper) để mật khẩu không bao giờ nằm trong source/cấu hình.
 public static class IdentitySeeder
 {
-    public const string AdminEmail = "admin@hotmail.com";
-    public const string AdminDefaultPassword = "123456"; // Đổi ngay sau lần chạy đầu tiên.
+    public const string AdminRoleName = "Admin";
 
     private static readonly string[] DefaultPermissions =
     [
@@ -18,12 +17,12 @@ public static class IdentitySeeder
         "users.manage",
         "admins.manage",
         "organizations.manage",
-        "locations.manage"
+        "locations.manage",
+        "services.review"
     ];
 
     public static async Task SeedAsync(
         IdentityDbContext context,
-        IPasswordHasher passwordHasher,
         CancellationToken cancellationToken = default)
     {
         foreach (var code in DefaultPermissions)
@@ -36,11 +35,10 @@ public static class IdentitySeeder
 
         await context.SaveChangesAsync(cancellationToken);
 
-        var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin", cancellationToken);
-        var adminRoleCreated = adminRole is null;
+        var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == AdminRoleName, cancellationToken);
         if (adminRole is null)
         {
-            adminRole = new Role { Name = "Admin", Description = "Toàn quyền quản trị hệ thống" };
+            adminRole = new Role { Name = AdminRoleName, Description = "Toàn quyền quản trị hệ thống" };
             context.Roles.Add(adminRole);
             await context.SaveChangesAsync(cancellationToken);
         }
@@ -63,32 +61,7 @@ public static class IdentitySeeder
         }
 
         await context.SaveChangesAsync(cancellationToken);
-
-        var admin = await context.Users.FirstOrDefaultAsync(u => u.Email == AdminEmail && u.AccountGroup == "InternalAdmin", cancellationToken);
-        var adminCreated = admin is null;
-        if (admin is null)
-        {
-            admin = new User
-            {
-                Email = AdminEmail,
-                AccountGroup = "InternalAdmin",
-                FullName = "System Admin",
-                PasswordHash = passwordHasher.Hash(AdminDefaultPassword),
-                IsActive = true,
-                // Tài khoản seed sẵn, không đi qua luồng đăng ký nên đánh dấu đã xác thực luôn.
-                EmailVerifiedAt = DateTime.UtcNow
-            };
-            context.Users.Add(admin);
-            await context.SaveChangesAsync(cancellationToken);
-        }
-
-        // Role được tạo lại có ID mới; liên kết tới role đã xóa không cấp quyền nữa.
-        // Chỉ khôi phục tài khoản seed khi tạo user/role mặc định, không gán lại cho user khác.
-        if ((adminCreated || adminRoleCreated) && !await context.UserRoles.AnyAsync(
-                ur => ur.UserId == admin.Id && ur.RoleId == adminRole.Id, cancellationToken))
-        {
-            context.UserRoles.Add(new UserRole { UserId = admin.Id, RoleId = adminRole.Id });
-            await context.SaveChangesAsync(cancellationToken);
-        }
+        // Role Admin được tạo lại có ID mới nên không ai còn giữ nó; khôi phục quyền cho một
+        // tài khoản cụ thể bằng `create-admin --email <email>` thay vì tự gán ở đây.
     }
 }
