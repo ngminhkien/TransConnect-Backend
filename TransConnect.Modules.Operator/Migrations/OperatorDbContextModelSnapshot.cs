@@ -247,6 +247,10 @@ namespace TransConnect.Modules.Operator.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("RequestedServiceTypes")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ReviewNote")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");

@@ -14,6 +14,7 @@ public interface IOrganizationService
     Task<InvitationResponse> InviteOwnerAsync(Guid id, CancellationToken ct);
     Task<InvitationResponse> InviteAsync(Guid id, InviteMemberRequest request, CancellationToken ct);
     Task<MemberResponse> AcceptAsync(AcceptInvitationRequest request, CancellationToken ct);
+    Task<MemberResponse> AcceptByIdAsync(Guid invitationId, CancellationToken ct);
     Task RevokeAsync(Guid id, Guid invitationId, CancellationToken ct);
     Task<IReadOnlyList<MemberResponse>> MembersAsync(Guid id, CancellationToken ct);
     Task<MemberResponse> UpdateMemberAsync(Guid id, Guid memberId, UpdateMemberRequest request, CancellationToken ct);

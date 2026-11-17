@@ -33,7 +33,8 @@ public sealed class FoundationSearchService(OperatorDbContext db, OperatorAccess
             .Select(x => new OrganizationResponse(x.Id, x.Name, x.RegistrationNumber, x.ProposedOwnerEmail,
                 x.ReviewStatus, x.ReviewNote, x.EmployeeLimit, x.DriverLimit, x.LegalEntityType,
                 x.RegisteredAddress, x.ContactPhone, x.ContactEmail, x.LegalEntityType != null && x.RegisteredAddress != null
-                    && x.ContactPhone != null && x.ContactEmail != null, x.CreatedByUserId)).ToListAsync(ct);
+                    && x.ContactPhone != null && x.ContactEmail != null, x.CreatedByUserId,
+                    OrganizationService.SplitServiceTypes(x.RequestedServiceTypes))).ToListAsync(ct);
         return new(items, request.PageNumber, request.PageSize, count);
     }
 

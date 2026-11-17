@@ -6,6 +6,80 @@ Cập nhật nền tảng **22/10/2026**, Locations **27/10/2026**, tìm địa 
 
 ## 1. Những phần đã làm
 
+<a id="partner-reg"></a>
+### PARTNER-REG-01 — Wizard đăng ký đối tác `/partner/register`, 16/11
+
+Quyết định [Q-PARTNER-REG](../../TransConnect-Docs/00-project/questions-and-answers.md#q-partner-reg). Restart BE để nạp 4 trường hồ sơ tùy chọn khi nộp; không migration. Email OTP chỉ tới hộp thư khi `Email:Provider` = `Smtp` (provider `File` không gửi ra ngoài).
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-REG-M01 — Vào wizard | `/login/partner` → "Đăng ký đối tác" | Mở `/partner/register`, bước 1 Tài khoản sáng; không còn chế độ tạo tài khoản trong trang đăng nhập |
+| TC-REG-M02 — Tạo tài khoản | Nhập họ tên, email mới, mật khẩu < 6 ký tự rồi hợp lệ; thử email đã có | Lỗi hiện tại ô/summary, dữ liệu giữ; hợp lệ → bước 2 Xác thực email. Email trùng báo lỗi từ BE |
+| TC-REG-M03 — OTP | Nhập mã sai; Gửi lại mã; nhập mã đúng từ hộp thư | Mã sai báo lỗi; Gửi lại khóa 60 giây và hiện thông báo; mã đúng → bước 3. Reload ở bước 2 vẫn quay lại bước 2 |
+| TC-REG-M04 — Doanh nghiệp | MST 11 số, SĐT `abc`, email `x@`; sửa đúng, để trống phần "Hồ sơ liên hệ"; reload trang ở bước 4 | Lỗi theo ô, focus ô đầu lỗi; trống phần tùy chọn vẫn tiếp tục. Reload giữ dữ liệu đã nhập (cùng tab), quay về bước 3 |
+| TC-REG-M05 — Dịch vụ, xem lại, nộp | Không chọn dịch vụ → Tiếp tục; chọn Xe khách; ở Xem lại bấm Sửa từng khối; Nộp hồ sơ; thử MST đã tồn tại | Bắt chọn ≥1; Sửa về đúng bước, dữ liệu còn; nộp → "Đã nộp hồ sơ" + Chờ duyệt. Admin chi tiết tổ chức thấy loại chủ thể/địa chỉ/liên hệ đã khai. MST trùng → lỗi, dữ liệu còn |
+| TC-REG-M06 — Từ chối, nộp lại, tài khoản khác | Admin từ chối có ghi chú; Partner Tổng quan → Sửa và nộp lại; đăng nhập tài khoản tài xế hoặc Owner vào `/partner/register` | Wizard điền sẵn, hiện ghi chú từ chối, nộp lại → Chờ duyệt, trường không sửa giữ nguyên. Tài khoản tài xế thấy thông báo dùng tài khoản riêng; Owner/đã được duyệt chuyển về `/partner` |
+
+Bằng chứng tự động: BE `TC_PARTNER_REG_001`; Management `tests/registration.test.mjs`. Chưa chạy trên trình duyệt với API thật.
+
+<a id="m2-transport"></a>
+### M2-IMPL-01 — Dịch vụ hai lớp, tuyến, sơ đồ ghế, lịch xe khách, 13/11
+
+Contract: [transport-endpoints.md](../../TransConnect-Docs/05-api/endpoints/transport-endpoints.md); đặc tả [M2](../../TransConnect-Docs/01-requirements/m2-service-coach-route-spec.md). **Điều kiện trước:** chủ dự án đã cho phép apply migration lên `TransConnectPhase1Dev`. Khởi động Host Development sẽ (1) tự migrate Operator thêm cột `RequestedServiceTypes`, (2) seeder Identity thêm quyền `services.review` cho role Admin. Bảng `transport.*` chỉ có khi apply `InitTransport`: `scripts/Update-DevelopmentDatabase.ps1 -DotnetPath <dotnet> -IncludeTransport` (migrate các module như cũ + Transport, rồi chạy `dotnet run --project TransConnect.Host -- seed-transport` nạp 7 mẫu sơ đồ, idempotent; không cần sửa appsettings). Admin phải đăng nhập lại để token có `services.review`. Thiếu bảng Transport thì trang Dịch vụ báo lỗi và việc tạo đăng ký Pending khi duyệt tổ chức chỉ ghi log cảnh báo.
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-ORG-SVC-M01 — Khai báo dịch vụ khi nộp | Partner `/partner/application` nộp hồ sơ không chọn loại dịch vụ, rồi chọn Xe khách + Thuê xe | Nút Nộp khóa khi chưa chọn; gọi API trực tiếp không có `requestedServiceTypes` → 400 field `requestedServiceTypes`. Hồ sơ hiện "Dịch vụ đăng ký"; Admin chi tiết tổ chức thấy dòng Dịch vụ dự định khai thác |
+| TC-ORG-SVC-M02 — Duyệt tổ chức tạo đăng ký chờ | Admin duyệt hồ sơ trên | `/admin/services` (lọc Chờ duyệt) có 2 đăng ký Pending của tổ chức; không có bản Approved tự động. Hồ sơ đã duyệt từ trước không được tạo bù |
+| TC-SVC-M01 — Admin duyệt/từ chối | Mở đăng ký Xe khách → Duyệt; Thuê xe → Từ chối không nhập ghi chú, rồi có ghi chú | Duyệt thành công; từ chối thiếu ghi chú bị chặn. Owner thấy trạng thái và ghi chú ở `/partner/services`; menu Partner hiện Tuyến, Sơ đồ ghế, Lịch chạy chỉ sau khi Xe khách được duyệt |
+| TC-SVC-M02 — Owner nộp lại/rút | Owner sửa và nộp lại Thuê xe; Manager mở `/partner/services` | Bản Rejected về Pending; Manager chỉ xem, không có nút đăng ký/rút (API → 403) |
+| TC-SVC-M03 — Tạm ngưng/khôi phục | Admin tạm ngưng Xe khách khi có lịch đang chạy, rồi khôi phục | Lịch chuyển Tạm dừng; Partner chỉ xem tuyến/sơ đồ/lịch, không tạo/kích hoạt. Khôi phục không tự chạy lại lịch |
+| TC-ROUTE-M01 — Soạn và công bố tuyến | Tạo tuyến `HN-HP-01`; thêm 3 điểm dùng chung bằng ô tìm; điểm đầu offset 5 | Cảnh báo "Điểm đầu có thời gian 0 phút", nút Công bố khóa; sửa về 0, Lưu bản nháp rồi Công bố → bản 1 "Đã công bố", danh sách hiện điểm đầu → cuối |
+| TC-ROUTE-M02 — Bản sửa đổi | Tạo bản sửa đổi, đổi thứ tự/thêm điểm, công bố | Bản 2 công bố, bản 1 vào "Các bản đã thay thế"; lịch tạo trước vẫn ghi "bản 1" |
+| TC-ROUTE-M03 — Xóa nháp tuyến mới | Tạo tuyến mới, Xóa bản nháp → Xác nhận xóa tuyến chưa công bố | Quay về danh sách, tuyến biến mất |
+| TC-ROUTE-M04 — Admin ngừng tuyến | Từ chi tiết đăng ký Xe khách (Admin) → Ngừng tuyến có lý do | Tuyến Ngừng hoạt động kèm lý do ở cả hai phía; lịch đang chạy của tuyến tạm dừng |
+| TC-SEAT-M01 — Mẫu và sao chép | `/partner/seat-layouts` xem mẫu Giường 40, Sao chép về nhà xe; Sửa: đổi vài ô thành VIP/không bán, Đánh số lại | Sơ đồ nháp lưu được; mã trùng hoặc trống báo trước khi lưu và Backend từ chối nếu gọi trực tiếp |
+| TC-SEAT-M02 — Gắn xe | Gắn sơ đồ có số ghế bán vượt số chỗ trong hồ sơ xe, rồi sơ đồ hợp lệ | Lựa chọn vượt bị khóa (API → 400); gắn hợp lệ → sơ đồ chuyển Đã khóa, nút Sửa ẩn, Lưu trữ bị chặn khi đang gắn |
+| TC-SCH-M01 — Lịch và ghế VieGo | Tạo lịch 07:00 T2–CN, xe đã gắn sơ đồ, chế độ Đặt ngay, chọn ghế A01, A02 trên sơ đồ; Kích hoạt | Không chọn ghế thì cảnh báo; lưu nháp → kích hoạt → Đang chạy, hiển thị 2 ghế VieGo |
+| TC-SCH-M02 — Trùng giờ và thay lịch | Tạo lịch thứ hai cùng tuyến 07:00 → Kích hoạt; với lịch đang chạy chọn Thay lịch từ ngày mai giờ 07:30 | Kích hoạt bị 409 trùng giờ; thay lịch tạo lịch mới Đang chạy, lịch cũ có ngày kết thúc là hôm nay |
+| TC-SCH-M03 — Bảo vệ ghế VieGo khi đổi sơ đồ | Gắn cho xe của lịch đang chạy một sơ đồ không có ghế A01 | 409, sơ đồ xe giữ nguyên |
+
+Bằng chứng tự động: `TransportTests` (TC_SVC/ROUTE/SEAT/SCH), `TC_ORG_SVC_001_002`, `TC_DB_M2_001/002`; Management `tests/transport.test.mjs`. Chưa chạy trên SQL Server/trình duyệt với dữ liệu thật.
+
+<a id="m2-fare"></a>
+### M2-FARE-01 — Bảng giá theo chặng, 14/11
+
+Contract mục Bảng giá trong [transport-endpoints.md](../../TransConnect-Docs/05-api/endpoints/transport-endpoints.md); quyết định [Q-M2-FARE](../../TransConnect-Docs/00-project/questions-and-answers.md#q-m2-fare). **Điều kiện trước:** apply migration `20261113175630_FareTables` (chỉ khi chủ dự án cho phép; lệnh như M2: `scripts/Update-DevelopmentDatabase.ps1 -DotnetPath <dotnet> -IncludeTransport`). Cần một tuyến đã công bố có ≥3 điểm (A đón, B đón+trả, C trả). Lịch `RequestConfirmation`/`InstantBooking` đang chạy từ trước vẫn chạy; điều kiện chỉ áp khi kích hoạt.
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-FARE-M01 — Quyền | Manager/Dispatcher mở `/partner/fares` → chọn tuyến; Admin gọi `GET .../fares` | Thấy bảng giá, không có nút Lập/Lưu/Công bố; gọi `POST .../fares` bằng Manager → 403. Admin đọc được |
+| TC-FARE-M02 — Lập và công bố | Owner → Lập bảng giá cho bản hiện hành; nhập A→B 150, B→C 200, để trống A→C | Bảng tam giác: hàng A,B; cột B,C; ô B→B xám. Nút Công bố khóa, báo cần giá điểm đầu → cuối |
+| TC-FARE-M03 — Cảnh báo và Vip | Nhập A→C 300, phụ thu Vip 50; chuyển "Giá ghế Vip", ghi đè A→C 380; Lưu nháp; đổi A→C thành 120 rồi Lưu | Sau lưu giá hiển thị đúng; với 120 hiện cảnh báo "A → C … rẻ hơn chặng con" nhưng vẫn công bố được. Nhập `1,5` báo lỗi định dạng |
+| TC-FARE-M04 — Phiên bản | Công bố (ngày hôm nay); lập bảng mới (tự chép giá), ngày áp dụng +30 ngày, công bố | Bảng 1 "Đang áp dụng", bảng 2 "Sắp áp dụng". Bảng đã công bố không sửa được |
+| TC-FARE-M05 — Bản tuyến mới | Tạo bản tuyến mới bỏ điểm B, công bố; vào Bảng giá → Lập bảng giá cho bản mới | Chỉ chép giá A→C; bản cũ vẫn giữ bảng giá của nó |
+| TC-FARE-M06 — Kích hoạt lịch | Lịch nháp `RequestConfirmation` trên bản tuyến chưa có bảng giá → Kích hoạt; lịch `InformationOnly` cùng bản → Kích hoạt | Lịch đầu: dòng "Chưa có bảng giá công bố…" và kích hoạt → 409; lịch InformationOnly kích hoạt được. Sau khi công bố bảng giá, lịch đầu kích hoạt được |
+
+Bằng chứng tự động: `TransportTests` TC_FARE_001–004; Management `tests/transport.test.mjs` (fareMatrix). Chưa chạy trên SQL Server/trình duyệt.
+
+### FLOW-UI-01 — Cổng đối tác theo route và Driver theo trạng thái, 10/11
+
+Restart BE để nạp 3 route nhận lời mời theo id (contract tại `phase2-endpoints.md`, mục FLOW-UI-01). Không cần migration.
+
+| Ca test | Thao tác | Kỳ vọng |
+|---|---|---|
+| TC-FLOW-M01 — Partner chưa xác thực | Đăng ký Partner mới, vào `/partner` | Menu chỉ có Tổng quan, Tài khoản; bước 1 "Xác thực email" sáng; nhập mã đúng → menu thêm Hồ sơ đăng ký, Lời mời |
+| TC-FLOW-M02 — Nộp và chờ duyệt | `/partner/application` nộp tên + MST 10/13 số | Tổng quan chuyển "Hồ sơ đang chờ duyệt", bước 3 sáng; MST sai định dạng báo lỗi tại ô |
+| TC-FLOW-M03 — Từ chối và nộp lại | Admin từ chối có ghi chú; Partner mở Tổng quan → Sửa và nộp lại | Tổng quan hiện đúng ghi chú; form điền sẵn; nộp lại giữ id và lịch sử xét duyệt |
+| TC-FLOW-M04 — Được duyệt | Admin duyệt hồ sơ Applicant tự nộp | Partner thành Owner; menu có Tài xế, Phương tiện, Nhân viên, Thông tin tổ chức, Địa điểm; tên tổ chức ở khung điều hướng. Hồ sơ thiếu loại hình/địa chỉ/liên hệ → thẻ vàng "Bổ sung thông tin tổ chức" |
+| TC-FLOW-M05 — Nhận lời mời bằng nút | Owner mời email nhân viên; nhân viên đăng nhập `/partner/invitations` → Nhận lời mời | Không cần dán mã; nhân viên vào tổ chức với đúng vai trò. Manager/Dispatcher không thấy Nhân viên/Thông tin/Địa điểm; mở thẳng URL `/partner/members` quay về Tổng quan |
+| TC-FLOW-M06 — Lời mời không phải của mình | Gọi `POST /organizations/invitations/{id của email khác}/accept` | 404; lời mời không bị nhận. Gọi lại lời mời đã nhận → 401 |
+| TC-FLOW-D01 — Driver theo bước | App Driver: đăng ký → xác thực → khai hồ sơ → chờ duyệt | Trang chính hiện 5 bước và nội dung đúng bước; tab Cộng tác/Giấy tờ trước khi có hồ sơ chỉ hiện hướng dẫn về Trang chính |
+| TC-FLOW-D02 — Driver nhận lời mời | Admin duyệt Driver; nhà xe mời bằng email hoặc mời trực tiếp | Badge số lời mời trên tab Cộng tác; bấm Nhận lời mời → mục Đơn vị cộng tác "Đang cộng tác", Trang chính chuyển bước 5. Khi chưa duyệt, nút nhận bị khóa kèm thông báo |
+| TC-FLOW-D03 — Mã email dự phòng | Tab Cộng tác → Nhận bằng mã trong email | Vẫn nhận được bằng token như trước; danh sách tự cập nhật |
+
+Bằng chứng tự động: BE `TC_FOUNDATION_017`; Management `tests/partner.test.mjs`; Driver test "approved driver is guided from invitation to collaboration". Chưa chạy trên SQL Server/trình duyệt/thiết bị.
+
 ### LOC-CANCEL-03 — Hủy request Locations, 01/11
 
 | Ca test | Thao tác | Kỳ vọng |

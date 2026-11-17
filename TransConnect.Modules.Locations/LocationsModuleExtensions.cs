@@ -12,6 +12,7 @@ public static class LocationsModuleExtensions
     {
         services.AddDbContext<LocationsDbContext>(o => o.UseSqlServer(configuration.GetConnectionString("Default")));
         services.AddScoped<ILocationsService, LocationsService>();
+        services.AddScoped<TransConnect.Common.Transport.ISharedLocationCatalog, SharedLocationCatalog>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddOptions<PlaceSearchOptions>().Bind(configuration.GetSection(PlaceSearchOptions.Section))
             .Validate(o => Uri.TryCreate(o.Endpoint, UriKind.Absolute, out var uri) && uri.Scheme == "https" &&

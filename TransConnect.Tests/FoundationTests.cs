@@ -62,13 +62,13 @@ public class FoundationTests
     {
         using var app = new Fixture();
         await app.InitializeAsync();
-        await app.Post("/organizations", new { name = "Public", registrationNumber = "0123456789" }, HttpStatusCode.Unauthorized);
+        await app.Post("/organizations", new { name = "Public", registrationNumber = "0123456789" , requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }}, HttpStatusCode.Unauthorized);
         var applicant = await app.User("tax-applicant@example.com");
         var other = await app.User("spoof-owner@example.com");
         app.ActAs(applicant);
-        await app.Post("/organizations", new { name = "Bad", registrationNumber = "ABCDEFGHIJ" }, HttpStatusCode.BadRequest);
+        await app.Post("/organizations", new { name = "Bad", registrationNumber = "ABCDEFGHIJ" , requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }}, HttpStatusCode.BadRequest);
         var org = await app.Post("/organizations", new {
-            name = "Good", registrationNumber = "0123456789001", createdByUserId = other.Id, ownerEmail = other.Email
+            name = "Good", registrationNumber = "0123456789001", requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }, createdByUserId = other.Id, ownerEmail = other.Email
         });
         Assert.Equal(applicant.Id, org.GetProperty("createdByUserId").GetGuid());
         Assert.Equal(applicant.Email, org.GetProperty("ownerEmail").GetString());
@@ -77,6 +77,77 @@ public class FoundationTests
         await app.Post($"/organizations/{orgId}/review", new { approved = false, note = " " }, HttpStatusCode.BadRequest);
         app.ActAs(other);
         await app.Get($"/organizations/{orgId}", HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task TC_ORG_SVC_001_002_Declared_service_types_are_required_and_become_pending_registrations()
+    {
+        using var app = new Fixture();
+        await app.InitializeAsync();
+        var applicant = await app.User("service-applicant@example.com");
+        app.ActAs(applicant);
+        await app.Post("/organizations", new { name = "No service", registrationNumber = "0123456780" }, HttpStatusCode.BadRequest);
+        await app.Post("/organizations", new { name = "Bad service", registrationNumber = "0123456780",
+            requestedServiceTypes = new[] { "TAXI" } }, HttpStatusCode.BadRequest);
+        var org = await app.Post("/organizations", new { name = "Two services", registrationNumber = "0123456780",
+            requestedServiceTypes = new[] { "CHARTER", "FIXED_ROUTE_COACH", "CHARTER" } });
+        Assert.Equal(new[] { "FIXED_ROUTE_COACH", "CHARTER" },
+            org.GetProperty("requestedServiceTypes").EnumerateArray().Select(x => x.GetString()).ToArray());
+        var id = org.GetProperty("id").GetGuid();
+        app.Admin();
+        await app.Post($"/organizations/{id}/review", new { approved = true, note = "OK" });
+        using var scope = app.Factory.Services.CreateScope();
+        var registrations = await scope.ServiceProvider.GetRequiredService<TransConnect.Modules.Transport.Persistence.TransportDbContext>()
+            .Registrations.Where(x => x.OrganizationId == id).ToListAsync();
+        Assert.Equal(2, registrations.Count);
+        Assert.All(registrations, x => Assert.Equal("Pending", x.Status));
+        app.ActAs(applicant);
+        var listed = await app.Get($"/organizations/{id}/services");
+        Assert.Equal(2, listed.GetArrayLength());
+    }
+
+    [Fact]
+    public async Task TC_PARTNER_REG_001_Optional_profile_on_submit_is_validated_saved_and_kept_on_resubmit()
+    {
+        using var app = new Fixture();
+        await app.InitializeAsync();
+        var applicant = await app.User("reg-profile@example.com");
+        app.ActAs(applicant);
+        var coach = new[] { "FIXED_ROUTE_COACH" };
+        await app.Post("/organizations", new { name = "Bad type", registrationNumber = "0123456781", requestedServiceTypes = coach,
+            legalEntityType = "Company" }, HttpStatusCode.BadRequest);
+        await app.Post("/organizations", new { name = "Bad phone", registrationNumber = "0123456781", requestedServiceTypes = coach,
+            contactPhone = "abc" }, HttpStatusCode.BadRequest);
+        await app.Post("/organizations", new { name = "Bad email", registrationNumber = "0123456781", requestedServiceTypes = coach,
+            contactEmail = "not-an-email" }, HttpStatusCode.BadRequest);
+
+        var org = await app.Post("/organizations", new {
+            name = "Full profile", registrationNumber = "0123456781", requestedServiceTypes = coach,
+            legalEntityType = "Cooperative", registeredAddress = " 12 Trần Phú, Hà Nội ", contactPhone = "0901234567",
+            contactEmail = "Contact@Example.com"
+        });
+        Assert.Equal("Cooperative", org.GetProperty("legalEntityType").GetString());
+        Assert.Equal("12 Trần Phú, Hà Nội", org.GetProperty("registeredAddress").GetString());
+        Assert.Equal("contact@example.com", org.GetProperty("contactEmail").GetString());
+        Assert.True(org.GetProperty("isProfileComplete").GetBoolean());
+        var id = org.GetProperty("id").GetGuid();
+
+        app.Admin();
+        await app.Post($"/organizations/{id}/review", new { approved = false, note = "Sửa tên" });
+        app.ActAs(applicant);
+        // Old clients omit the optional fields: resubmit must keep what was declared.
+        var resubmitted = await app.Post($"/organizations/{id}/resubmit", new {
+            name = "Full profile fixed", registrationNumber = "0123456781", requestedServiceTypes = coach, contactPhone = "0912345678"
+        });
+        Assert.Equal("Pending", resubmitted.GetProperty("reviewStatus").GetString());
+        Assert.Equal("0912345678", resubmitted.GetProperty("contactPhone").GetString());
+        Assert.Equal("Cooperative", resubmitted.GetProperty("legalEntityType").GetString());
+
+        // Without optional fields the submission still works and the profile stays incomplete.
+        var minimal = await app.User("reg-minimal@example.com");
+        app.ActAs(minimal);
+        var plain = await app.Post("/organizations", new { name = "Minimal", registrationNumber = "0123456782", requestedServiceTypes = coach });
+        Assert.False(plain.GetProperty("isProfileComplete").GetBoolean());
     }
 
     [Fact]
@@ -89,7 +160,7 @@ public class FoundationTests
         app.Admin();
         await app.Post($"/organizations/{org}/review", new { approved = false, note = "Legacy fix" });
         await app.Post($"/organizations/{org}/resubmit", new {
-            name = "Fixed legacy", registrationNumber = "0123456789", ownerEmail = owner.Email
+            name = "Fixed legacy", registrationNumber = "0123456789", ownerEmail = owner.Email, requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }
         });
         await app.Post($"/organizations/{org}/review", new { approved = true, note = "Legacy accepted" });
         Assert.NotEmpty(await app.InvitationToken(owner.Email));
@@ -108,15 +179,15 @@ public class FoundationTests
         var applicant = await app.User("applicant@example.com");
         var stranger = await app.User("other@example.com");
         app.ActAs(applicant);
-        var org = await app.Post("/organizations", new { name = "Applicant", registrationNumber = "0123456789" });
+        var org = await app.Post("/organizations", new { name = "Applicant", registrationNumber = "0123456789" , requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }});
         var id = org.GetProperty("id").GetGuid();
         app.ActAs(stranger);
         await app.Get($"/organizations/{id}", HttpStatusCode.Forbidden);
-        await app.Post($"/organizations/{id}/resubmit", new { name = "Bad", registrationNumber = "0123456789" }, HttpStatusCode.NotFound);
+        await app.Post($"/organizations/{id}/resubmit", new { name = "Bad", registrationNumber = "0123456789" , requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }}, HttpStatusCode.NotFound);
         app.Admin();
         await app.Post($"/organizations/{id}/review", new { approved = false, note = "Sửa tên" });
         app.ActAs(applicant);
-        var retry = await app.Post($"/organizations/{id}/resubmit", new { name = "Corrected", registrationNumber = "0123456789" });
+        var retry = await app.Post($"/organizations/{id}/resubmit", new { name = "Corrected", registrationNumber = "0123456789" , requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" }});
         Assert.Equal(id, retry.GetProperty("id").GetGuid());
         app.Admin();
         await app.Post($"/organizations/{id}/review", new { approved = true, note = "Đã kiểm tra" });
@@ -639,6 +710,63 @@ public class FoundationTests
         await app.Get(route, HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task TC_FOUNDATION_017_Signed_in_account_accepts_its_own_invitations_by_id_without_token()
+    {
+        using var app = new Fixture();
+        await app.InitializeAsync();
+        var owner = await app.User("id-owner@example.com");
+        var stranger = await app.User("id-stranger@example.com");
+        var employee = await app.User("id-employee@example.com");
+        var driverUser = await app.User("id-driver@example.com");
+        var org = await app.ApprovedOrganization("ACCEPT-ID", owner.Email);
+        app.ActAs(owner);
+        var ownerInvitation = (await app.Get("/operator/invitations"))[0].GetProperty("id").GetGuid();
+        app.ActAs(stranger);
+        // Another account cannot use an id it can see nowhere; the response does not reveal the invitation.
+        await app.Post($"/organizations/invitations/{ownerInvitation}/accept", new { }, HttpStatusCode.NotFound);
+        Assert.Equal(0, (await app.Get("/operator/invitations")).GetArrayLength());
+        app.ActAs(owner);
+        await app.Post($"/organizations/invitations/{ownerInvitation}/accept", new { });
+        await app.Post($"/organizations/invitations/{ownerInvitation}/accept", new { }, HttpStatusCode.Unauthorized);
+        await app.Post($"/organizations/{org}/invitations", new { email = employee.Email, role = "Manager" });
+        await app.Post($"/organizations/{org}/driver-invitations", new { email = driverUser.Email });
+        app.ActAs(employee);
+        var memberInvitation = (await app.Get("/operator/invitations"))[0].GetProperty("id").GetGuid();
+        var member = await app.Post($"/organizations/invitations/{memberInvitation}/accept", new { });
+        Assert.Equal("Manager", member.GetProperty("role").GetString());
+
+        app.ActAs(driverUser);
+        var driverInvitation = (await app.Get("/operator/invitations"))[0].GetProperty("id").GetGuid();
+        // Driver invitations are not membership invitations and still require an approved driver profile.
+        await app.Post($"/organizations/invitations/{driverInvitation}/accept", new { }, HttpStatusCode.NotFound);
+        var driver = await app.Post("/drivers", new { fullName = "Driver by id" });
+        await app.Post($"/drivers/invitations/{driverInvitation}/accept", new { }, HttpStatusCode.Conflict);
+        app.Admin();
+        var driverId = driver.GetProperty("id").GetGuid();
+        await app.Post($"/drivers/{driverId}/review", new { approved = true, note = "Reviewed." });
+        app.ActAs(stranger);
+        await app.Post($"/drivers/invitations/{driverInvitation}/accept", new { }, HttpStatusCode.NotFound);
+        app.ActAs(driverUser);
+        await app.Post($"/drivers/invitations/{driverInvitation}/accept", new { });
+        await app.Post($"/drivers/invitations/{driverInvitation}/accept", new { }, HttpStatusCode.Unauthorized);
+
+        var second = await app.ApprovedOrganization("ACCEPT-ID-B", "id-owner-b@example.com");
+        await app.Post($"/organizations/{second}/drivers/{driverId}/invitations", new { });
+        app.ActAs(driverUser);
+        var pending = (await app.Get("/drivers/me/collaborations")).EnumerateArray()
+            .Single(x => x.GetProperty("acceptedAt").ValueKind == JsonValueKind.Null).GetProperty("id").GetGuid();
+        app.ActAs(stranger);
+        await app.Post($"/drivers/me/collaborations/{pending}/accept", new { }, HttpStatusCode.NotFound);
+        app.ActAs(driverUser);
+        await app.Post($"/drivers/me/collaborations/{pending}/accept", new { });
+        await app.Post($"/drivers/me/collaborations/{pending}/accept", new { }, HttpStatusCode.Unauthorized);
+        using var scope = app.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OperatorDbContext>();
+        Assert.Equal(2, await db.Engagements.CountAsync(x => x.AcceptedAt != null && x.EndedAt == null));
+        Assert.Equal(2, await db.Members.CountAsync(x => x.OrganizationId == org && x.IsActive));
+    }
+
     private sealed class BlockingObligations : TransConnect.Common.Transport.ITransportObligations
     {
         public Task<bool> HasDriverObligationsAsync(Guid organizationId, Guid driverId, CancellationToken ct) => Task.FromResult(true);
@@ -662,6 +790,7 @@ public class FoundationTests
             await scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.EnsureCreatedAsync();
             await scope.ServiceProvider.GetRequiredService<NotificationDbContext>().Database.EnsureCreatedAsync();
             await scope.ServiceProvider.GetRequiredService<OperatorDbContext>().Database.EnsureCreatedAsync();
+            await scope.ServiceProvider.GetRequiredService<TransConnect.Modules.Transport.Persistence.TransportDbContext>().Database.EnsureCreatedAsync();
             _admin = await User("internal@example.com", AccountGroups.InternalAdmin);
             var identity = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
             var role = new Role { Name = "FoundationAdmin" };
@@ -699,7 +828,7 @@ public class FoundationTests
             Admin();
             var digits = (uint)System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(
                 System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(number)));
-            var data = await Post("/organizations", new { name = number, registrationNumber = digits.ToString("D10"), ownerEmail = owner });
+            var data = await Post("/organizations", new { name = number, registrationNumber = digits.ToString("D10"), ownerEmail = owner, requestedServiceTypes = new[] { "FIXED_ROUTE_COACH" } });
             return data.GetProperty("id").GetGuid();
         }
         public async Task<Guid> ApprovedOrganization(string number, string owner)

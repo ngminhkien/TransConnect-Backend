@@ -195,12 +195,21 @@ Workflow [Backend CI](.github/workflows/ci.yml) chạy khi push vào `main`, m�
 
 CI không cần secret, SQL Server hoặc SMTP thật; không chạy Host Development, apply migration hay deploy. Sau khi push workflow lên GitHub, kiểm tra job **Build and test** trong tab Actions. Có thể yêu cầu check này pass trước khi merge bằng branch protection/ruleset của `main`.
 
-## Tài khoản Admin mặc định
+## Tạo tài khoản Admin
 
-- Email: `admin@hotmail.com`
-- Password: `123456`
+Host chỉ seed role/permission, **không tạo tài khoản và không có mật khẩu mặc định trong source**. Sau khi DB đã migrate, tạo Admin đầu tiên bằng lệnh:
 
-**Đổi ngay sau lần chạy đầu tiên** (xem `TransConnect.Modules.Identity/Persistence/IdentitySeeder.cs`).
+```powershell
+dotnet run --project TransConnect.Host -- create-admin --email admin@example.com --name "System Admin"
+```
+
+- Mật khẩu nhập ẩn trên console (hỏi 2 lần), hoặc đọc từ biến môi trường `TRANSCONNECT_ADMIN_PASSWORD` khi chạy không tương tác. Không nhận `--password` qua tham số.
+- Giai đoạn test dùng quy tắc mật khẩu chung (6–100 ký tự); cần siết lại trước khi deploy.
+- Email đã là InternalAdmin: lệnh chỉ khôi phục role Admin nếu thiếu (ví dụ sau khi role bị xóa và seed tạo lại), **không đổi mật khẩu**.
+- Lệnh không chạy migration; nếu Identity còn migration chưa apply thì dừng với mã thoát 3.
+- Mã code: `TransConnect.Host/Commands/CreateAdminCommand.cs`, `TransConnect.Modules.Identity/Persistence/AdminBootstrapper.cs`.
+
+DB đã có admin cũ (`admin@hotmail.com`) vẫn giữ mật khẩu cũ — đổi qua API đổi mật khẩu.
 
 ## Tài liệu
 

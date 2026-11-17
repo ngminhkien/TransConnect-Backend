@@ -19,5 +19,6 @@ public sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organiz
         builder.Property(x => x.RegisteredAddress).HasMaxLength(500);
         builder.Property(x => x.ContactPhone).HasMaxLength(20);
         builder.Property(x => x.ContactEmail).HasMaxLength(256);
+        builder.Property(x => x.RequestedServiceTypes).HasMaxLength(200);
     }
 }
